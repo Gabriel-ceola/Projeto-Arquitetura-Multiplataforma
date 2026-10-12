@@ -2,6 +2,7 @@
 /dist
 /node_modules
 /build
+*.tsbuildinfo
 
 # Logs
 logs
@@ -14,10 +15,19 @@ lerna-debug.log*
 
 # OS
 .DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
 
 # Tests
 /coverage
 /.nyc_output
+/test-results
+*.trx
+
+# Mutation testing (opcional, T-07.28)
+/.stryker-tmp
+/reports
 
 # IDEs and editors
 /.idea
@@ -34,6 +44,21 @@ lerna-debug.log*
 !.vscode/tasks.json
 !.vscode/launch.json
 !.vscode/extensions.json
+.history/
+
+# Vim / Emacs
+*.swp
+*.swo
+*~
+\#*\#
+.\#*
+
+# pnpm
+.pnpm-store/
+
+# Packed artifacts
+*.tgz
+*.tar.gz
 
 # dotenv environment variable files
 .env

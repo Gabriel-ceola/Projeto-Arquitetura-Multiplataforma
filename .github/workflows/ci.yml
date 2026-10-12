@@ -7,6 +7,44 @@ on:
     branches: ["**"]
 
 jobs:
+  bff:
+    name: BFF (lint, arch, unit, int, build)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: bff
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: pnpm run lint
+
+      - name: Arch check
+        run: pnpm run arch:check
+
+      - name: Unit tests
+        run: pnpm run test:unit
+
+      - name: Integration tests
+        run: pnpm run test:int
+
+      - name: Build
+        run: pnpm run build
+
   test:
     name: Build & Test
     runs-on: ubuntu-latest

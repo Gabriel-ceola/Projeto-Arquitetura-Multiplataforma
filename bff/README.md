@@ -1,98 +1,84 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# BFF Odontológico (NestJS · Hexagonal · Keycloak RBAC)
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+Única porta de entrada HTTP para os clientes (web/mobile). Autentica via JWT do
+Keycloak (JWKS/RS256), autoriza por RBAC (`employ` | `dentist` | `pacient`) e
+orquestra o **Dentist Service**. Spec em `docs/specs/spec01.md`, tarefas em
+`docs/tasks/task01.md`.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
-
-## Description
-
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
-
-## Project setup
+## Como subir
 
 ```bash
-$ pnpm install
+cp .env.example .env   # ajuste KEYCLOAK_* e DENTIST_SERVICE_BASE_URL
+pnpm install
+pnpm run start:dev     # http://localhost:3000 | Swagger em /docs (se SWAGGER_ENABLED=true)
 ```
 
-## Compile and run the project
+Via Docker:
 
 ```bash
-# development
-$ pnpm run start
-
-# watch mode
-$ pnpm run start:dev
-
-# production mode
-$ pnpm run start:prod
+docker build -t bff .
+docker run -p 3000:3000 --env-file .env bff
+# ou com mock do downstream:
+docker compose -f docker-compose.dev.yml up
 ```
 
-## Run tests
+`GET /health` é público (liveness).
 
-```bash
-# unit tests
-$ pnpm run test
+## Variáveis de ambiente
 
-# e2e tests
-$ pnpm run test:e2e
+Ver `.env.example` (todas as variáveis do 10 do spec). Obrigatórias:
+`KEYCLOAK_ISSUER`, `KEYCLOAK_JWKS_URI`, `KEYCLOAK_CLIENT_ID`,
+`DENTIST_SERVICE_BASE_URL`. O boot **falha** com env inválida, listando o problema.
 
-# test coverage
-$ pnpm run test:cov
-```
+## Como obter um token de teste
 
-## Deployment
+1. No Keycloak, crie o realm/cliente `bff-clinica` com uma role de realm
+   `dentist` (valores exatos: `employ`, `dentist`, `pacient` — case-sensitive).
+2. Crie um usuário de teste com a role `dentist`.
+3. Obtenha o token (Direct Access Grants, apenas dev):
+   ```bash
+   curl -X POST "$KEYCLOAK_ISSUER/protocol/openid-connect/token" \
+     -d "grant_type=password&client_id=bff-clinica&username=dentista1&password=senha"
+   ```
+4. Chame o BFF:
+   ```bash
+   curl -H "Authorization: Bearer $TOKEN" http://localhost:3000/api/dentist-services
+   ```
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
+Nos testes automatizados um JWKS local + `signToken` é usado
+(`test/support/jwt-test-kit.ts`) — nenhum Keycloak real é necessário.
 
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+## Matriz RBAC
 
-```bash
-$ pnpm install -g @nestjs/mau
-$ mau deploy
-```
+| Recurso                         |          `employ`          | `dentist` | `pacient` |
+| ------------------------------- | :------------------------: | :-------: | :-------: |
+| `/api/dentist-services` (todas) |            403             |    ✅     |    403    |
+| `/health`                       |          público           |  público  |  público  |
+| `/docs`                         | conforme `SWAGGER_ENABLED` |           |           |
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+Sem token/token inválido → `401`; sem a role → `403`. Rotas sem
+`@Public()`/`@Roles()` negam por padrão (fail-closed). O cliente nunca envia
+`X-Dentist-Id`/`dentistId`: o BFF injeta o `sub` do token.
 
-## Resources
+## Scripts
 
-Check out a few resources that may come in handy when working with NestJS:
+| Comando                        | O quê                                        |
+| ------------------------------ | -------------------------------------------- |
+| `pnpm run build` / `start:dev` | build / dev                                  |
+| `pnpm run lint`                | ESLint + Prettier                            |
+| `pnpm run arch:check`          | dependency-cruiser (hexagonal)               |
+| `pnpm run test:unit`           | testes unitários (`src/**/*.spec.ts`)        |
+| `pnpm run test:int`            | integração (JWKS local + HTTP local)         |
+| `pnpm run test:e2e`            | E2E (pulado nesta entrega — sem specs)       |
+| `pnpm run test:cov`            | cobertura (metas §12.10 no `jest.config.js`) |
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+Testes E2E (`T-07.21–T-07.25`) foram **pulados nesta entrega** a infra (`configureApp`, `jwt-test-kit`, `downstream-mock`) está
+pronta para reativá-los.
 
-## Support
+## Como adicionar um novo módulo (ex.: `pacient-services`)
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+1. Crie `src/modules/<nome>/{domain,application,infrastructure}` no mesmo molde.
+2. Declare a porta OUT e os use cases (`UseCase<In,Out>`).
+3. Implemente o gateway com `DownstreamHttpModule.forClient(TOKEN)` (uma linha).
+4. Anote o controller com `@Auth(Role.X)` — nada muda em `auth/` ou `shared/`
+   (exceto novos `DomainError`s no mapa do filtro).
