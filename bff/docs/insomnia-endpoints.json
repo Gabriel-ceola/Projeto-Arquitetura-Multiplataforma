@@ -1,0 +1,129 @@
+{
+  "_type": "export",
+  "__export_format": 4,
+  "__export_date": "2026-10-12T00:00:00.000Z",
+  "__export_source": "bff-docs",
+  "resources": [
+    {
+      "_id": "wrk_bff_odontologico",
+      "_type": "workspace",
+      "name": "BFF Odontológico",
+      "description": "BFF (NestJS) — Keycloak RBAC + Dentist Services. Configure as variáveis no ambiente \"Local\"."
+    },
+    {
+      "_id": "env_bff_local",
+      "_type": "environment",
+      "parentId": "wrk_bff_odontologico",
+      "name": "Local",
+      "data": {
+        "base_url": "http://localhost:3000",
+        "keycloak_url": "http://localhost:8080",
+        "realm": "dentist",
+        "client_id": "dentist-app",
+        "username": "dentista1",
+        "password": "senha",
+        "token": "COLE_AQUI_O_TOKEN",
+        "service_id": "COLE_AQUI_UM_UUID"
+      }
+    },
+    {
+      "_id": "fld_bff_health",
+      "_type": "request_group",
+      "parentId": "wrk_bff_odontologico",
+      "name": "Health"
+    },
+    {
+      "_id": "req_bff_health",
+      "_type": "request",
+      "parentId": "fld_bff_health",
+      "name": "GET /health (público)",
+      "method": "GET",
+      "url": "{{ base_url }}/health"
+    },
+    {
+      "_id": "fld_bff_keycloak",
+      "_type": "request_group",
+      "parentId": "wrk_bff_odontologico",
+      "name": "Keycloak"
+    },
+    {
+      "_id": "req_bff_token",
+      "_type": "request",
+      "parentId": "fld_bff_keycloak",
+      "name": "POST obter token (password grant)",
+      "method": "POST",
+      "url": "{{ keycloak_url }}/realms/{{ realm }}/protocol/openid-connect/token",
+      "headers": [{ "name": "Content-Type", "value": "application/x-www-form-urlencoded" }],
+      "body": {
+        "mimeType": "application/x-www-form-urlencoded",
+        "params": [
+          { "name": "grant_type", "value": "password" },
+          { "name": "client_id", "value": "{{ client_id }}" },
+          { "name": "username", "value": "{{ username }}" },
+          { "name": "password", "value": "{{ password }}" }
+        ]
+      }
+    },
+    {
+      "_id": "fld_bff_dentist_services",
+      "_type": "request_group",
+      "parentId": "wrk_bff_odontologico",
+      "name": "Dentist Services (role dentist)"
+    },
+    {
+      "_id": "req_bff_list",
+      "_type": "request",
+      "parentId": "fld_bff_dentist_services",
+      "name": "GET /api/dentist-services",
+      "method": "GET",
+      "url": "{{ base_url }}/api/dentist-services",
+      "authentication": { "type": "bearer", "token": "{{ token }}" }
+    },
+    {
+      "_id": "req_bff_get_by_id",
+      "_type": "request",
+      "parentId": "fld_bff_dentist_services",
+      "name": "GET /api/dentist-services/:id",
+      "method": "GET",
+      "url": "{{ base_url }}/api/dentist-services/{{ service_id }}",
+      "authentication": { "type": "bearer", "token": "{{ token }}" }
+    },
+    {
+      "_id": "req_bff_create",
+      "_type": "request",
+      "parentId": "fld_bff_dentist_services",
+      "name": "POST /api/dentist-services",
+      "method": "POST",
+      "url": "{{ base_url }}/api/dentist-services",
+      "authentication": { "type": "bearer", "token": "{{ token }}" },
+      "headers": [{ "name": "Content-Type", "value": "application/json" }],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"name\": \"Limpeza completa\",\n  \"price\": 150,\n  \"isPeriodic\": false,\n  \"status\": \"disponivel\"\n}"
+      }
+    },
+    {
+      "_id": "req_bff_update",
+      "_type": "request",
+      "parentId": "fld_bff_dentist_services",
+      "name": "PUT /api/dentist-services/:id",
+      "method": "PUT",
+      "url": "{{ base_url }}/api/dentist-services/{{ service_id }}",
+      "authentication": { "type": "bearer", "token": "{{ token }}" },
+      "headers": [{ "name": "Content-Type", "value": "application/json" }],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"name\": \"Limpeza completa Plus\",\n  \"price\": 200,\n  \"isPeriodic\": true,\n  \"status\": \"disponivel\"\n}"
+      }
+    },
+    {
+      "_id": "req_bff_delete",
+      "_type": "request",
+      "parentId": "fld_bff_dentist_services",
+      "name": "DELETE /api/dentist-services/:id",
+      "method": "DELETE",
+      "url": "{{ base_url }}/api/dentist-services/{{ service_id }}",
+      "authentication": { "type": "bearer", "token": "{{ token }}" }
+    }
+  ]
+}

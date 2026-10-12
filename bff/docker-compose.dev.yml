@@ -1,0 +1,36 @@
+# Ambiente de desenvolvimento: BFF + mock do Dentist Service.
+# O Keycloak é externo (ver README para obter um token de teste).
+services:
+  dentist-service-mock:
+    image: node:20-alpine
+    working_dir: /mock
+    volumes:
+      # `:z` necessário em hosts com SELinux (ex.: Fedora Atomic) para o bind funcionar
+      - ./test/support/downstream-mock.standalone.js:/mock/server.js:ro,z
+    command: node /mock/server.js
+    # Sem `ports`: o BFF acessa o mock pela rede interna do compose
+    # (http://dentist-service-mock:5068). Publicar 5068 no host conflitaria
+    # com o Dentist Service real, que já usa essa porta.
+    healthcheck:
+      test: ['CMD', 'wget', '-qO-', 'http://127.0.0.1:5068/api/dentist-services']
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  bff:
+    build: .
+    depends_on:
+      dentist-service-mock:
+        condition: service_started
+    ports:
+      - '3000:3000'
+    env_file: .env
+    # Permite ao container alcançar serviços no host (ex.: Keycloak em
+    # http://localhost:8080) via http://host.docker.internal:8080
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
+    environment:
+      PORT: 3000
+      NODE_ENV: development
+      DENTIST_SERVICE_BASE_URL: http://dentist-service-mock:5068
+      SWAGGER_ENABLED: 'true'
