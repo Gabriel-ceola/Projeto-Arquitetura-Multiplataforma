@@ -1,0 +1,355 @@
+openapi: 3.0.4
+info:
+  title: Employee Service API
+  description: |
+    API REST para gerenciamento de funcionários da clínica (Odontologia Integrada).
+
+    ## Regras de negócio
+    - O CPF é único: cadastrar um CPF já existente retorna `409 Conflict`.
+    - O CPF é imutável: não faz parte do payload de edição.
+    - CPF e telefone são armazenados apenas com dígitos.
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:5070
+    description: Local HTTP
+  - url: https://localhost:7237
+    description: Local HTTPS
+
+tags:
+  - name: Employees
+    description: Gerenciamento de funcionários da clínica
+
+paths:
+
+  /api/employees:
+
+    get:
+      tags:
+        - Employees
+      summary: Listar funcionários
+      description: Retorna todos os funcionários da clínica, ordenados por nome.
+      operationId: GetAll
+      responses:
+        '200':
+          description: Lista de funcionários retornada com sucesso
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/EmployeeResponse'
+              example:
+                - id: 7c9e6679-7425-40de-944b-e07fc1f90ae7
+                  name: Maria Souza
+                  cpf: "12345678901"
+                  email: maria.souza@clinica.com
+                  phone: "43999998888"
+                  role: recepcionista
+                  status: ativo
+                  createdAt: "2026-10-12T12:00:00Z"
+                  updatedAt: "2026-10-12T12:00:00Z"
+
+    post:
+      tags:
+        - Employees
+      summary: Cadastrar funcionário
+      description: Cadastra um novo funcionário. CPF e telefone podem ser enviados com ou sem máscara.
+      operationId: Create
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateEmployeeRequest'
+            example:
+              name: Maria Souza
+              cpf: 123.456.789-01
+              email: maria.souza@clinica.com
+              phone: (43) 99999-8888
+              role: recepcionista
+              status: ativo
+      responses:
+        '201':
+          description: Funcionário cadastrado com sucesso
+          headers:
+            Location:
+              description: URL do funcionário cadastrado
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmployeeResponse'
+              example:
+                id: 7c9e6679-7425-40de-944b-e07fc1f90ae7
+                name: Maria Souza
+                cpf: "12345678901"
+                email: maria.souza@clinica.com
+                phone: "43999998888"
+                role: recepcionista
+                status: ativo
+                createdAt: "2026-10-12T12:00:00Z"
+                updatedAt: "2026-10-12T12:00:00Z"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /api/employees/{id}:
+
+    get:
+      tags:
+        - Employees
+      summary: Buscar funcionário por Id
+      description: Retorna os dados de um funcionário específico.
+      operationId: GetById
+      parameters:
+        - $ref: '#/components/parameters/EmployeeId'
+      responses:
+        '200':
+          description: Funcionário encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmployeeResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    put:
+      tags:
+        - Employees
+      summary: Editar funcionário
+      description: Edita nome, e-mail, telefone, cargo e status. O CPF não pode ser alterado.
+      operationId: Update
+      parameters:
+        - $ref: '#/components/parameters/EmployeeId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateEmployeeRequest'
+            example:
+              name: Maria Souza Lima
+              email: maria.lima@clinica.com
+              phone: "43999998888"
+              role: administrativo
+              status: ferias
+      responses:
+        '200':
+          description: Funcionário atualizado com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmployeeResponse'
+              example:
+                id: 7c9e6679-7425-40de-944b-e07fc1f90ae7
+                name: Maria Souza Lima
+                cpf: "12345678901"
+                email: maria.lima@clinica.com
+                phone: "43999998888"
+                role: administrativo
+                status: ferias
+                createdAt: "2026-10-12T12:00:00Z"
+                updatedAt: "2026-10-12T13:00:00Z"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      tags:
+        - Employees
+      summary: Remover funcionário
+      description: Remove um funcionário da clínica.
+      operationId: Delete
+      parameters:
+        - $ref: '#/components/parameters/EmployeeId'
+      responses:
+        '204':
+          description: Funcionário removido com sucesso
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+components:
+
+  parameters:
+
+    EmployeeId:
+      name: id
+      in: path
+      required: true
+      description: GUID do funcionário
+      schema:
+        type: string
+        format: uuid
+      example: 7c9e6679-7425-40de-944b-e07fc1f90ae7
+
+  schemas:
+
+    EmployeeRole:
+      type: string
+      enum:
+        - recepcionista
+        - auxiliar
+        - administrativo
+      description: |
+        Cargo do funcionário:
+        - `recepcionista` – recepção e agendamentos
+        - `auxiliar` – auxiliar de saúde bucal
+        - `administrativo` – setor administrativo
+
+    EmployeeStatus:
+      type: string
+      enum:
+        - ativo
+        - inativo
+        - ferias
+      description: |
+        Situação do funcionário:
+        - `ativo` – trabalhando normalmente
+        - `inativo` – desligado ou afastado
+        - `ferias` – em férias
+
+    CreateEmployeeRequest:
+      type: object
+      required:
+        - name
+        - cpf
+        - email
+        - phone
+        - role
+        - status
+      properties:
+        name:
+          type: string
+          minLength: 3
+          maxLength: 100
+          description: Nome completo do funcionário
+          example: Maria Souza
+        cpf:
+          type: string
+          description: CPF com ou sem máscara (armazenado com 11 dígitos)
+          example: 123.456.789-01
+        email:
+          type: string
+          format: email
+          maxLength: 150
+          description: E-mail do funcionário
+          example: maria.souza@clinica.com
+        phone:
+          type: string
+          description: Telefone com DDD, com ou sem máscara (armazenado com 10 ou 11 dígitos)
+          example: (43) 99999-8888
+        role:
+          $ref: '#/components/schemas/EmployeeRole'
+        status:
+          $ref: '#/components/schemas/EmployeeStatus'
+
+    UpdateEmployeeRequest:
+      type: object
+      required:
+        - name
+        - email
+        - phone
+        - role
+        - status
+      properties:
+        name:
+          type: string
+          minLength: 3
+          maxLength: 100
+          description: Nome completo do funcionário
+          example: Maria Souza Lima
+        email:
+          type: string
+          format: email
+          maxLength: 150
+          description: E-mail do funcionário
+          example: maria.lima@clinica.com
+        phone:
+          type: string
+          description: Telefone com DDD, com ou sem máscara
+          example: "43999998888"
+        role:
+          $ref: '#/components/schemas/EmployeeRole'
+        status:
+          $ref: '#/components/schemas/EmployeeStatus'
+
+    EmployeeResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: GUID único do funcionário
+          example: 7c9e6679-7425-40de-944b-e07fc1f90ae7
+        name:
+          type: string
+          description: Nome completo do funcionário
+          example: Maria Souza
+        cpf:
+          type: string
+          description: CPF (somente dígitos)
+          example: "12345678901"
+        email:
+          type: string
+          format: email
+          description: E-mail do funcionário
+          example: maria.souza@clinica.com
+        phone:
+          type: string
+          description: Telefone com DDD (somente dígitos)
+          example: "43999998888"
+        role:
+          $ref: '#/components/schemas/EmployeeRole'
+        status:
+          $ref: '#/components/schemas/EmployeeStatus'
+        createdAt:
+          type: string
+          format: date-time
+          description: Data de criação (UTC)
+          example: "2026-10-12T12:00:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          description: Data da última atualização (UTC)
+          example: "2026-10-12T12:00:00Z"
+
+    ErrorResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          description: Descrição do erro
+          example: Funcionário não encontrado.
+
+  responses:
+
+    BadRequest:
+      description: Payload inválido (os erros de validação vêm separados por ponto e vírgula)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            message: "O nome deve ter ao menos 3 caracteres.; O CPF deve conter 11 dígitos."
+
+    NotFound:
+      description: Funcionário não encontrado
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            message: "Funcionário com id '7c9e6679-7425-40de-944b-e07fc1f90ae7' não encontrado."
+
+    Conflict:
+      description: Já existe um funcionário cadastrado com o CPF informado
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            message: "Já existe um funcionário cadastrado com o CPF informado."
