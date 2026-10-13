@@ -1,14 +1,30 @@
+using Employee_service.Employees.Application.UseCases;
+using Employee_service.Employees.Domain.Ports;
+using Employee_service.Employees.Domain.Validators;
+using Employee_service.Employees.Infrastructure.Data;
+using Employee_service.Employees.Infrastructure.Repositories;
+using Microsoft.EntityFrameworkCore;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // ──────────────────────────────────────────────
 // Infraestrutura: EF Core + PostgreSQL
-// (registrada na etapa de infraestrutura)
 // ──────────────────────────────────────────────
+builder.Services.AddDbContext<EmployeeDbContext>(options =>
+    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 // ──────────────────────────────────────────────
 // Portas → Adaptadores (Hexagonal)
-// (registradas conforme as camadas forem implementadas)
 // ──────────────────────────────────────────────
+
+// Porta de saída: repositório
+builder.Services.AddScoped<IEmployeeRepository, EmployeeRepository>();
+
+// Porta de entrada: validação
+builder.Services.AddScoped<IEmployeeValidator, EmployeeValidator>();
+
+// Porta de entrada: caso de uso
+builder.Services.AddScoped<IEmployeeUseCase, EmployeeUseCase>();
 
 // ──────────────────────────────────────────────
 // API
