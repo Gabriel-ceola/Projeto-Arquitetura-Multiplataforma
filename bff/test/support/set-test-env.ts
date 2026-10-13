@@ -8,3 +8,4 @@ process.env.KEYCLOAK_ISSUER ??= 'https://auth.test/realms/clinica';
 process.env.KEYCLOAK_JWKS_URI ??= 'http://127.0.0.1:1/certs';
 process.env.KEYCLOAK_CLIENT_ID ??= 'bff-clinica';
 process.env.DENTIST_SERVICE_BASE_URL ??= 'http://127.0.0.1:1';
+process.env.EMPLOYEE_SERVICE_BASE_URL ??= 'http://127.0.0.1:1';

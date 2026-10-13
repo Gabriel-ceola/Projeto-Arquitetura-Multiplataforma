@@ -21,6 +21,7 @@ export const envSchema = z.object({
 
   // Downstream
   DENTIST_SERVICE_BASE_URL: z.string().url(),
+  EMPLOYEE_SERVICE_BASE_URL: z.string().url().default('http://localhost:5070'),
   DOWNSTREAM_TIMEOUT_MS: z.coerce.number().default(5000),
 
   // HTTP

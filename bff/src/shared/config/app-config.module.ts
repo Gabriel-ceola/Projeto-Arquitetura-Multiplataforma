@@ -43,6 +43,9 @@ export const APP_CONFIG = Symbol('APP_CONFIG');
         DENTIST_SERVICE_BASE_URL: cs.get('DENTIST_SERVICE_BASE_URL', {
           infer: true,
         }),
+        EMPLOYEE_SERVICE_BASE_URL: cs.get('EMPLOYEE_SERVICE_BASE_URL', {
+          infer: true,
+        }),
         DOWNSTREAM_TIMEOUT_MS: cs.get('DOWNSTREAM_TIMEOUT_MS', { infer: true }),
         CORS_ORIGINS: cs.get('CORS_ORIGINS', { infer: true }),
         SWAGGER_ENABLED: cs.get('SWAGGER_ENABLED', { infer: true }),
