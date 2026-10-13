@@ -12,6 +12,7 @@ export interface MockDentistService {
   name: string;
   dentistId: string;
   price: number;
+  durationMinutes: number;
   isPeriodic: boolean;
   status: string;
   createdAt: string;
@@ -77,6 +78,7 @@ export async function createDownstreamMock(opts: DownstreamMockOptions = {}) {
         name: e.name ?? 'Limpeza completa',
         dentistId: e.dentistId,
         price: e.price ?? 150,
+        durationMinutes: e.durationMinutes ?? 30,
         isPeriodic: e.isPeriodic ?? false,
         status: e.status ?? 'disponivel',
         createdAt: e.createdAt ?? nowIso(),
@@ -127,6 +129,7 @@ export async function createDownstreamMock(opts: DownstreamMockOptions = {}) {
         name: String(b['name'] ?? 'Serviço'),
         dentistId: String(b['dentistId'] ?? dentistId ?? 'unknown'),
         price: Number(b['price'] ?? 100),
+        durationMinutes: Number(b['durationMinutes'] ?? 30),
         isPeriodic: Boolean(b['isPeriodic'] ?? false),
         status: String(b['status'] ?? 'disponivel'),
         createdAt: nowIso(),
@@ -172,6 +175,7 @@ export async function createDownstreamMock(opts: DownstreamMockOptions = {}) {
           ...item,
           name: b['name'] !== undefined ? String(b['name']) : item.name,
           price: b['price'] !== undefined ? Number(b['price']) : item.price,
+          durationMinutes: b['durationMinutes'] !== undefined ? Number(b['durationMinutes']) : item.durationMinutes,
           isPeriodic:
             b['isPeriodic'] !== undefined
               ? Boolean(b['isPeriodic'])

@@ -53,6 +53,8 @@ Nos testes automatizados um JWKS local + `signToken` é usado
 | Recurso                         |          `employ`          | `dentist` | `pacient` |
 | ------------------------------- | :------------------------: | :-------: | :-------: |
 | `/api/dentist-services` (todas) |            403             |    ✅     |    403    |
+| `/api/appointments`, `/api/availability` |            403             |    ✅     |    ✅     |
+| `/api/dentist-schedule/*`, confirmar/rejeitar pedidos |            403             |    ✅     |    403    |
 | `/health`                       |          público           |  público  |  público  |
 | `/docs`                         | conforme `SWAGGER_ENABLED` |           |           |
 

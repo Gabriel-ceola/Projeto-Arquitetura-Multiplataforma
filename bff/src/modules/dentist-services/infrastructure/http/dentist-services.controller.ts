@@ -86,6 +86,7 @@ export class DentistServicesController {
       dentistId: user.id,
       name: dto.name,
       price: dto.price,
+      durationMinutes: dto.durationMinutes,
       isPeriodic: dto.isPeriodic,
       status: dto.status,
     });
@@ -107,6 +108,7 @@ export class DentistServicesController {
       dentistId: user.id,
       name: dto.name,
       price: dto.price,
+      durationMinutes: dto.durationMinutes,
       isPeriodic: dto.isPeriodic,
       status: dto.status,
     });

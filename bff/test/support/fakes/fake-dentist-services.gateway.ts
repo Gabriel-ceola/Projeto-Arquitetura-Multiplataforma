@@ -56,6 +56,7 @@ export class FakeDentistServicesGateway implements DentistServicesGateway {
     const created: DentistService = {
       id: randomUUID(),
       ...input,
+      durationMinutes: input.durationMinutes ?? 30,
       createdAt: now,
       updatedAt: now,
     };
