@@ -1,0 +1,40 @@
+@Employee_service_HostAddress = http://localhost:5070
+@employeeId = 00000000-0000-0000-0000-000000000000
+
+### Listar funcionários (GetEmployees)
+GET {{Employee_service_HostAddress}}/api/employees
+Accept: application/json
+
+### Cadastrar funcionário (CreateEmployee)
+POST {{Employee_service_HostAddress}}/api/employees
+Content-Type: application/json
+
+{
+  "name": "Maria Souza",
+  "cpf": "123.456.789-01",
+  "email": "maria.souza@clinica.com",
+  "phone": "(43) 99999-8888",
+  "role": "recepcionista",
+  "status": "ativo"
+}
+
+### Buscar funcionário por Id (GetEmployeeById) — substitua @employeeId pelo id retornado no cadastro
+GET {{Employee_service_HostAddress}}/api/employees/{{employeeId}}
+Accept: application/json
+
+### Editar funcionário (EditEmployee)
+PUT {{Employee_service_HostAddress}}/api/employees/{{employeeId}}
+Content-Type: application/json
+
+{
+  "name": "Maria Souza Lima",
+  "email": "maria.lima@clinica.com",
+  "phone": "43999998888",
+  "role": "administrativo",
+  "status": "ferias"
+}
+
+### Remover funcionário (RemoveEmployee)
+DELETE {{Employee_service_HostAddress}}/api/employees/{{employeeId}}
+
+###
