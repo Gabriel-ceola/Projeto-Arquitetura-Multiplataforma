@@ -96,6 +96,20 @@ describe('DownstreamHttpClient', () => {
     expect((err as DownstreamHttpStatusError).status).toBe(404);
   });
 
+  it('409 lança DownstreamHttpStatusError com status 409 e a mensagem', async () => {
+    fetchMock.mockResolvedValue(json({ message: 'CPF já cadastrado' }, 409));
+
+    const err = await sut
+      .request({ method: 'POST', path: '/x', body: {} })
+      .catch((e) => e);
+
+    expect(err).toBeInstanceOf(DownstreamHttpStatusError);
+    expect((err as DownstreamHttpStatusError).status).toBe(409);
+    expect((err as DownstreamHttpStatusError).message).toBe(
+      'CPF já cadastrado',
+    );
+  });
+
   it('500/503 lança DownstreamUnavailableError', async () => {
     fetchMock.mockResolvedValueOnce(json({ message: 'boom' }, 500));
     await expect(

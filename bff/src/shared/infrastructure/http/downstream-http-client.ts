@@ -87,7 +87,11 @@ export class DownstreamHttpClient {
       throw new DownstreamValidationError(message);
     }
 
-    if (response.status === 403 || response.status === 404) {
+    if (
+      response.status === 403 ||
+      response.status === 404 ||
+      response.status === 409
+    ) {
       const message =
         ((responseBody as Record<string, unknown>)?.['message'] as string) ||
         `Erro ${response.status}.`;
