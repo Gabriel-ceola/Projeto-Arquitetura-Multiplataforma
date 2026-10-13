@@ -80,3 +80,39 @@ jobs:
           name: xUnit Tests
           path: test-results/*.trx
           reporter: dotnet-trx
+
+  employee-service:
+    name: Employee Service (build & test)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Restore dependencies
+        run: dotnet restore Employee-service/Employee-service.sln
+
+      - name: Build
+        run: dotnet build Employee-service/Employee-service.sln --no-restore --configuration Release
+
+      - name: Test
+        run: >
+          dotnet test Employee-service/Employee-service.Tests/Employee-service.Tests.csproj
+          --no-build
+          --configuration Release
+          --verbosity normal
+          --logger "trx;LogFileName=employee-test-results.trx"
+          --results-directory ./employee-test-results
+
+      - name: Publish test results
+        uses: dorny/test-reporter@v1
+        if: always()
+        with:
+          name: Employee Service xUnit Tests
+          path: employee-test-results/*.trx
+          reporter: dotnet-trx
