@@ -2,7 +2,7 @@
 
 Única porta de entrada HTTP para os clientes (web/mobile). Autentica via JWT do
 Keycloak (JWKS/RS256), autoriza por RBAC (`employ` | `dentist` | `pacient`) e
-orquestra o **Dentist Service**. Spec em `docs/specs/spec01.md`, tarefas em
+orquestra o **Dentist Service** e o **Employee Service**. Spec em `docs/specs/spec01.md`, tarefas em
 `docs/tasks/task01.md`.
 
 ## Como subir
@@ -29,6 +29,7 @@ docker compose -f docker-compose.dev.yml up
 Ver `.env.example` (todas as variáveis do 10 do spec). Obrigatórias:
 `KEYCLOAK_ISSUER`, `KEYCLOAK_JWKS_URI`, `KEYCLOAK_CLIENT_ID`,
 `DENTIST_SERVICE_BASE_URL`. O boot **falha** com env inválida, listando o problema.
+`EMPLOYEE_SERVICE_BASE_URL` é opcional (padrão `http://localhost:5070`, porta do Employee-service).
 
 ## Como obter um token de teste
 
@@ -48,11 +49,43 @@ Ver `.env.example` (todas as variáveis do 10 do spec). Obrigatórias:
 Nos testes automatizados um JWKS local + `signToken` é usado
 (`test/support/jwt-test-kit.ts`) — nenhum Keycloak real é necessário.
 
+## Usando o Keycloak do repositório
+
+O realm `dentist` em `keycloak/keycloak/dentist-realm.json` já traz as roles e
+usuários de teste (senha `123456`):
+
+| Usuário        | Role      | Acessa                  |
+| -------------- | --------- | ----------------------- |
+| `dentista1`    | `dentist` | `/api/dentist-services` |
+| `funcionario1` | `employ`  | `/api/employees`        |
+
+Valores do `.env` para esse realm:
+
+```bash
+KEYCLOAK_ISSUER=http://localhost:8080/realms/dentist
+KEYCLOAK_JWKS_URI=http://localhost:8080/realms/dentist/protocol/openid-connect/certs
+KEYCLOAK_CLIENT_ID=dentist-app
+KEYCLOAK_AUDIENCE=
+```
+
+Token do funcionário e chamada ao BFF:
+
+```bash
+TOKEN=$(curl -s -X POST "http://localhost:8080/realms/dentist/protocol/openid-connect/token" \
+  -d "grant_type=password&client_id=dentist-app&username=funcionario1&password=123456" | jq -r .access_token)
+curl -H "Authorization: Bearer $TOKEN" http://localhost:3000/api/employees
+```
+
+> O Keycloak só importa o realm quando ele ainda não existe. Se o container já
+> foi criado antes, recrie o banco do Keycloak para carregar a role `employ`:
+> `docker compose down -v && docker compose up -d` (na pasta `keycloak/`).
+
 ## Matriz RBAC
 
 | Recurso                         |          `employ`          | `dentist` | `pacient` |
 | ------------------------------- | :------------------------: | :-------: | :-------: |
 | `/api/dentist-services` (todas) |            403             |    ✅     |    403    |
+| `/api/employees` (todas)        |             ✅             |    403    |    403    |
 | `/health`                       |          público           |  público  |  público  |
 | `/docs`                         | conforme `SWAGGER_ENABLED` |           |           |
 
@@ -76,6 +109,8 @@ Testes E2E (`T-07.21–T-07.25`) foram **pulados nesta entrega** a infra (`confi
 pronta para reativá-los.
 
 ## Como adicionar um novo módulo (ex.: `pacient-services`)
+
+> O módulo `employees` é um exemplo completo desse passo a passo.
 
 1. Crie `src/modules/<nome>/{domain,application,infrastructure}` no mesmo molde.
 2. Declare a porta OUT e os use cases (`UseCase<In,Out>`).
