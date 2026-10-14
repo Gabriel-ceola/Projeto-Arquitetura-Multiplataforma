@@ -1,6 +1,7 @@
 using System.Data;
 using System.Globalization;
 using Dentist_service.DentistsServices.Domain;
+using Dentist_service.DentistsServices.Domain.Ports;
 using Dentist_service.DentistsServices.Infrastructure.Data;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -11,7 +12,7 @@ namespace Dentist_service.DentistsServices.Api.Controllers;
 [ApiController]
 [Route("api")]
 [Produces("application/json")]
-public class AppointmentsController(DentistServicesDbContext db) : ControllerBase
+public class AppointmentsController(DentistServicesDbContext db, IAppointmentEventPublisher events) : ControllerBase
 {
     private static readonly TimeZoneInfo ClinicZone = TimeZoneInfo.FindSystemTimeZoneById("America/Sao_Paulo");
     private Guid? HeaderGuid(string name) => Request.Headers.TryGetValue(name, out var value) && Guid.TryParse(value, out var id) ? id : null;
@@ -150,6 +151,7 @@ public class AppointmentsController(DentistServicesDbContext db) : ControllerBas
         if (overlap) return Conflict(new { message = "Horário ocupado." });
         var appointment = new Appointment(service.DentistId, patientId.Value, service.Id, start, end, type, type == AppointmentType.Private ? service.Price : 0, request.InsuranceName, request.InsuranceCardNumber);
         db.Appointments.Add(appointment);
+        events.Requested(appointment);
         try { await db.SaveChangesAsync(ct); await tx.CommitAsync(ct); }
         catch (Exception ex) when (ex is DbUpdateException || ex is PostgresException { SqlState: PostgresErrorCodes.SerializationFailure })
         { return Conflict(new { message = "Horário ocupado." }); }
@@ -184,11 +186,12 @@ public class AppointmentsController(DentistServicesDbContext db) : ControllerBas
             var overlap = await db.Appointments.AnyAsync(x => x.Id != id && x.DentistId == dentistId && (x.Status == AppointmentStatus.Pending || x.Status == AppointmentStatus.Confirmed) && x.StartAtUtc < item.EndAtUtc && x.EndAtUtc > item.StartAtUtc, ct);
             if (overlap) return Conflict(new { message = "Horário ocupado." });
             item.SetStatus(status);
+            events.Confirmed(item);
             try { await db.SaveChangesAsync(ct); await tx.CommitAsync(ct); }
             catch (Exception ex) when (ex is DbUpdateException || ex is PostgresException { SqlState: PostgresErrorCodes.SerializationFailure })
             { return Conflict(new { message = "Horário ocupado." }); }
         }
-        else { item.SetStatus(status); await db.SaveChangesAsync(ct); }
+        else { item.SetStatus(status); events.Rejected(item); await db.SaveChangesAsync(ct); }
         return Ok(item);
     }
 
@@ -204,6 +207,8 @@ public class AppointmentsController(DentistServicesDbContext db) : ControllerBas
         if (item is null) return NotFound(new { message = "Agendamento não encontrado." });
         if (item.Status is AppointmentStatus.Cancelled or AppointmentStatus.Rejected) return Conflict(new { message = "Agendamento já encerrado." });
         if (dentistId is null && item.Status == AppointmentStatus.Confirmed && item.StartAtUtc < DateTime.UtcNow.AddHours(24)) return Conflict(new { message = "Cancelamento de consulta confirmada exige 24 horas de antecedência." });
-        item.SetStatus(AppointmentStatus.Cancelled); await db.SaveChangesAsync(ct); return Ok(item);
+        item.SetStatus(AppointmentStatus.Cancelled);
+        events.Cancelled(item, dentistId is not null ? AppointmentActor.Dentist : AppointmentActor.Patient);
+        await db.SaveChangesAsync(ct); return Ok(item);
     }
 }

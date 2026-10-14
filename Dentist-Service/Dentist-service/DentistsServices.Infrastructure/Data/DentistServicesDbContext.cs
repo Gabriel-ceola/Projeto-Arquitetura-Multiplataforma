@@ -1,4 +1,5 @@
 using Dentist_service.DentistsServices.Domain;
+using Messaging.Outbox;
 using Microsoft.EntityFrameworkCore;
 
 namespace Dentist_service.DentistsServices.Infrastructure.Data;
@@ -16,6 +17,7 @@ public class DentistServicesDbContext : DbContext
     public DbSet<DentistWeeklyHours> WeeklyHours => Set<DentistWeeklyHours>();
     public DbSet<DentistScheduleException> ScheduleExceptions => Set<DentistScheduleException>();
     public DbSet<Appointment> Appointments => Set<Appointment>();
+    public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -118,5 +120,7 @@ public class DentistServicesDbContext : DbContext
             entity.HasIndex(x => new { x.DentistId, x.StartAtUtc, x.EndAtUtc }).HasDatabaseName("ix_appointments_dentist_interval");
             entity.HasIndex(x => new { x.PatientId, x.StartAtUtc }).HasDatabaseName("ix_appointments_patient_start");
         });
+
+        modelBuilder.ApplyOutboxConfiguration();
     }
 }
