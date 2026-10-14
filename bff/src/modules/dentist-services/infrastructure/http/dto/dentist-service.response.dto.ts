@@ -14,6 +14,9 @@ export class DentistServiceResponseDto {
   @ApiProperty({ minimum: 1 })
   price!: number;
 
+  @ApiProperty({ minimum: 5, maximum: 480 })
+  durationMinutes!: number;
+
   @ApiProperty()
   isPeriodic!: boolean;
 

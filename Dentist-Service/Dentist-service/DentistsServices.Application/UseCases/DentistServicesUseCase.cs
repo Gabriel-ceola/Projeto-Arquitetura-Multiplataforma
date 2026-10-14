@@ -55,7 +55,8 @@ public class DentistServicesUseCase : IDentistServicesUseCase
             dentistId: request.DentistId,
             price: request.Price,
             isPeriodic: request.IsPeriodic,
-            status: request.Status);
+            status: request.Status,
+            durationMinutes: request.DurationMinutes);
 
         var validationResult = _validator.Validate(entity);
         if (!validationResult.IsValid)
@@ -70,7 +71,7 @@ public class DentistServicesUseCase : IDentistServicesUseCase
         var entity = await _repository.GetByIdAsync(id, cancellationToken)
             ?? throw new KeyNotFoundException($"Serviço com id '{id}' não encontrado.");
 
-        entity.Update(request.Name, request.Price, request.IsPeriodic, request.Status);
+        entity.Update(request.Name, request.Price, request.IsPeriodic, request.Status, request.DurationMinutes);
 
         var validationResult = _validator.Validate(entity);
         if (!validationResult.IsValid)
@@ -103,5 +104,6 @@ public class DentistServicesUseCase : IDentistServicesUseCase
             entity.Isperiodic,
             entity.Status,
             entity.CreatedAt,
-            entity.UpdatedAt);
+            entity.UpdatedAt,
+            entity.DurationMinutes);
 }

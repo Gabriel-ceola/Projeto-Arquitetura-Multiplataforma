@@ -18,8 +18,122 @@ servers:
 tags:
   - name: Dentist Services
     description: Gerenciamento de serviços odontológicos
+  - name: Appointments
+    description: Agenda semanal, exceções e pedidos de consulta
 
 paths:
+
+  /api/availability:
+    get:
+      tags: [Appointments]
+      summary: Consultar horários disponíveis nos próximos 30 dias
+      parameters:
+        - { name: dentistId, in: query, required: true, schema: { type: string, format: uuid } }
+        - { name: serviceId, in: query, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200':
+          description: Inícios disponíveis em UTC
+          content:
+            application/json:
+              schema: { type: array, items: { type: string, format: date-time } }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /api/dentist-schedule/weekly:
+    get:
+      tags: [Appointments]
+      summary: Consultar expediente semanal do dentista
+      parameters: [{ $ref: '#/components/parameters/XDentistId' }]
+      responses: { '200': { description: Expediente semanal } }
+    put:
+      tags: [Appointments]
+      summary: Substituir expediente semanal
+      parameters: [{ $ref: '#/components/parameters/XDentistId' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                type: object
+                required: [dayOfWeek, startTime, endTime]
+                properties:
+                  dayOfWeek: { type: integer, minimum: 0, maximum: 6, description: Domingo 0; sábado 6 }
+                  startTime: { type: string, example: '08:00:00' }
+                  endTime: { type: string, example: '17:00:00' }
+      responses: { '200': { description: Expediente atualizado }, '400': { $ref: '#/components/responses/BadRequest' } }
+
+  /api/dentist-schedule/exceptions:
+    get:
+      tags: [Appointments]
+      summary: Consultar exceções de data
+      parameters: [{ $ref: '#/components/parameters/XDentistId' }]
+      responses: { '200': { description: Exceções cadastradas } }
+    put:
+      tags: [Appointments]
+      summary: Criar ou substituir exceção de data
+      parameters: [{ $ref: '#/components/parameters/XDentistId' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [date, isClosed]
+              properties:
+                date: { type: string, format: date }
+                isClosed: { type: boolean }
+                startTime: { type: string, example: '09:00:00' }
+                endTime: { type: string, example: '12:00:00' }
+      responses: { '200': { description: Exceção atualizada }, '400': { $ref: '#/components/responses/BadRequest' } }
+
+  /api/appointments:
+    get:
+      tags: [Appointments]
+      summary: Listar pedidos próprios ou do dentista autenticado
+      parameters:
+        - { name: X-Patient-Id, in: header, schema: { type: string, format: uuid } }
+        - { name: X-Dentist-Id, in: header, required: false, schema: { type: string, format: uuid } }
+      responses: { '200': { description: Lista de pedidos de consulta } }
+    post:
+      tags: [Appointments]
+      summary: Solicitar consulta particular ou por convênio
+      parameters:
+        - { name: X-Patient-Id, in: header, schema: { type: string, format: uuid } }
+        - { name: X-Dentist-Id, in: header, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [serviceId, startAt, type]
+              properties:
+                serviceId: { type: string, format: uuid }
+                startAt: { type: string, format: date-time, description: Offset ISO 8601 obrigatório }
+                type: { type: string, enum: [Private, Insurance] }
+                insuranceName: { type: string }
+                insuranceCardNumber: { type: string }
+                patientId: { type: string, format: uuid, description: Dentista pode informar UUID do paciente }
+      responses:
+        '201': { description: Pedido criado com status Pending }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '409': { description: Horário indisponível ou ocupado }
+
+  /api/appointments/{id}/{action}:
+    post:
+      tags: [Appointments]
+      summary: Confirmar, rejeitar ou cancelar pedido
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+        - { name: action, in: path, required: true, schema: { type: string, enum: [confirm, reject, cancel] } }
+        - { name: X-Dentist-Id, in: header, schema: { type: string, format: uuid } }
+        - { name: X-Patient-Id, in: header, schema: { type: string, format: uuid } }
+      responses:
+        '200': { description: Pedido atualizado }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { description: Transição inválida ou antecedência mínima não atendida }
 
   /api/dentist-services:
 
@@ -45,6 +159,7 @@ paths:
                   name: Limpeza dental
                   dentistId: 3fa85f64-5717-4562-b3fc-2c963f66afa6
                   price: 150
+                  durationMinutes: 30
                   isPeriodic: true
                   status: disponivel
                   createdAt: "2026-10-03T12:00:00Z"
@@ -68,6 +183,7 @@ paths:
               name: Limpeza dental
               dentistId: 3fa85f64-5717-4562-b3fc-2c963f66afa6
               price: 150
+              durationMinutes: 30
               isPeriodic: true
               status: disponivel
       responses:
@@ -82,6 +198,7 @@ paths:
                 name: Limpeza dental
                 dentistId: 3fa85f64-5717-4562-b3fc-2c963f66afa6
                 price: 150
+                durationMinutes: 30
                 isPeriodic: true
                 status: disponivel
                 createdAt: "2026-10-03T12:00:00Z"
@@ -140,6 +257,7 @@ paths:
             example:
               name: Limpeza dental completa
               price: 200
+              durationMinutes: 30
               isPeriodic: false
               status: indisponivel
       responses:
@@ -154,6 +272,7 @@ paths:
                 name: Limpeza dental completa
                 dentistId: 3fa85f64-5717-4562-b3fc-2c963f66afa6
                 price: 200
+                durationMinutes: 30
                 isPeriodic: false
                 status: indisponivel
                 createdAt: "2026-10-03T12:00:00Z"
@@ -226,6 +345,7 @@ components:
         - name
         - dentistId
         - price
+        - durationMinutes
         - isPeriodic
         - status
       properties:
@@ -245,6 +365,12 @@ components:
           minimum: 1
           description: Preço do serviço em centavos ou valor inteiro
           example: 150
+        durationMinutes:
+          type: integer
+          minimum: 5
+          maximum: 480
+          description: Duração em minutos
+          example: 30
         isPeriodic:
           type: boolean
           description: Indica se o serviço é periódico (recorrente)
@@ -257,6 +383,7 @@ components:
       required:
         - name
         - price
+        - durationMinutes
         - isPeriodic
         - status
       properties:
@@ -271,6 +398,11 @@ components:
           minimum: 1
           description: Preço do serviço
           example: 200
+        durationMinutes:
+          type: integer
+          minimum: 5
+          maximum: 480
+          example: 30
         isPeriodic:
           type: boolean
           description: Indica se o serviço é periódico
@@ -299,6 +431,10 @@ components:
           type: integer
           description: Preço do serviço
           example: 150
+        durationMinutes:
+          type: integer
+          description: Duração em minutos
+          example: 30
         isPeriodic:
           type: boolean
           description: Indica se o serviço é periódico

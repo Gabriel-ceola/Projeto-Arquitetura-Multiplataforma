@@ -5,6 +5,7 @@ export interface DentistService {
   name: string;
   dentistId: string;
   price: number;
+  durationMinutes: number;
   isPeriodic: boolean;
   status: DentistServiceStatus;
   createdAt: Date;

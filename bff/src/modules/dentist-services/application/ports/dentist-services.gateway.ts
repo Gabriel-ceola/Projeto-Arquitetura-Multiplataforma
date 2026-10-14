@@ -7,6 +7,7 @@ export interface CreateDentistServiceInput {
   dentistId: string;
   name: string;
   price: number;
+  durationMinutes?: number;
   isPeriodic: boolean;
   status: DentistServiceStatus;
 }
@@ -14,6 +15,7 @@ export interface CreateDentistServiceInput {
 export interface UpdateDentistServiceInput {
   name: string;
   price: number;
+  durationMinutes?: number;
   isPeriodic: boolean;
   status: DentistServiceStatus;
 }

@@ -6,6 +6,7 @@ export interface DownstreamDentistServiceDto {
   name: string;
   dentistId: string;
   price: number;
+  durationMinutes?: number;
   isPeriodic: boolean;
   status: string;
   createdAt: string;
@@ -20,6 +21,7 @@ export function fromDownstream(
     name: dto.name,
     dentistId: dto.dentistId,
     price: dto.price,
+    durationMinutes: dto.durationMinutes ?? 30,
     isPeriodic: dto.isPeriodic,
     status: dto.status as DentistServiceStatus,
     createdAt: new Date(dto.createdAt),

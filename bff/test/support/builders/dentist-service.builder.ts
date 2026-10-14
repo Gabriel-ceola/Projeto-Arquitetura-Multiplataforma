@@ -11,6 +11,7 @@ export function aDentistService(
     name: 'Limpeza completa',
     dentistId: 'dentist-A',
     price: 150,
+    durationMinutes: 30,
     isPeriodic: false,
     status: DentistServiceStatus.Disponivel,
     createdAt: now,
