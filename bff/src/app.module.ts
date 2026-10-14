@@ -10,6 +10,7 @@ import { HEADERS } from '@shared/infrastructure/constants/headers';
 import { HealthModule } from '@shared/infrastructure/health/health.module';
 import { AuthModule } from '@modules/auth/infrastructure/auth.module';
 import { DentistServicesModule } from '@modules/dentist-services/infrastructure/dentist-services.module';
+import { AppointmentsModule } from '@modules/appointments/infrastructure/appointments.module';
 import { EmployeesModule } from '@modules/employees/infrastructure/employees.module';
 import { correlationIdStorage } from '@shared/infrastructure/http/correlation-id.storage';
 
@@ -45,6 +46,7 @@ import { correlationIdStorage } from '@shared/infrastructure/http/correlation-id
     HealthModule,
     AuthModule,
     DentistServicesModule,
+    AppointmentsModule,
     EmployeesModule,
   ],
   providers: [

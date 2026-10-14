@@ -1,4 +1,5 @@
 import {
+  DownstreamConflictError,
   DownstreamHttpClient,
   DownstreamHttpStatusError,
 } from '@shared/infrastructure/http/downstream-http-client';
@@ -144,24 +145,13 @@ describe('HttpEmployeesGateway', () => {
     expect((err as Error).message).toBe('Funcionário não encontrado.');
   });
 
-  it('409 traduz para EmployeeConflictError mantendo a mensagem do downstream', async () => {
-    request.mockRejectedValue(
-      new DownstreamHttpStatusError(409, 'CPF já cadastrado'),
-    );
+  it('409 (DownstreamConflictError) traduz para EmployeeConflictError mantendo a mensagem', async () => {
+    request.mockRejectedValue(new DownstreamConflictError('CPF já cadastrado'));
 
     const err = await sut.create(createInput).catch((e) => e);
 
     expect(err).toBeInstanceOf(EmployeeConflictError);
     expect((err as Error).message).toBe('CPF já cadastrado');
-  });
-
-  it('409 sem mensagem usa a mensagem padrão', async () => {
-    request.mockRejectedValue(new DownstreamHttpStatusError(409, 'Erro 409.'));
-
-    const err = await sut.create(createInput).catch((e) => e);
-
-    expect(err).toBeInstanceOf(EmployeeConflictError);
-    expect((err as Error).message).toContain('CPF');
   });
 
   it('propaga outros erros sem tradução', async () => {

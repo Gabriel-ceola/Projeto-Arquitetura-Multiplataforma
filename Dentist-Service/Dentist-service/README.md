@@ -1,6 +1,6 @@
 # Dentist Service
 
-API REST para gerenciamento de serviços odontológicos, construída com **.NET 10**, **Entity Framework Core** e **PostgreSQL**, seguindo **arquitetura hexagonal**.
+API REST para gerenciamento de serviços, expediente e agendamentos odontológicos, construída com **.NET 10**, **Entity Framework Core** e **PostgreSQL**.
 
 ---
 
@@ -72,6 +72,8 @@ dotnet ef migrations add InitialCreate
 dotnet ef database update
 ```
 
+A migration `20261013120000_AddAppointments` adiciona duração aos serviços, expediente semanal, exceções e pedidos de consulta.
+
 ---
 
 ## Executando a API
@@ -108,6 +110,11 @@ Todos os endpoints que envolvem ownership exigem o header `X-Dentist-Id` com o G
 | `POST`   | `/api/dentist-services`           | Cria um novo serviço                               | —                 |
 | `PUT`    | `/api/dentist-services/{id}`      | Atualiza um serviço existente                      | —                 |
 | `DELETE` | `/api/dentist-services/{id}`      | Remove um serviço (somente o próprio dono)         | `X-Dentist-Id`    |
+| `GET` | `/api/availability?dentistId={uuid}&serviceId={uuid}` | Horários livres nos próximos 30 dias | `X-Dentist-Id` opcional |
+| `GET/PUT` | `/api/dentist-schedule/weekly` | Consultar ou substituir expediente semanal (dia 0=domingo) | `X-Dentist-Id` |
+| `GET/PUT` | `/api/dentist-schedule/exceptions` | Consultar ou definir exceção por data | `X-Dentist-Id` |
+| `GET/POST` | `/api/appointments` | Listar próprios pedidos ou solicitar consulta | `X-Patient-Id` ou `X-Dentist-Id` |
+| `POST` | `/api/appointments/{id}/confirm`, `/reject`, `/cancel` | Gerenciar pedido | Header conforme perfil |
 
 ### Exemplos de requisição
 
@@ -120,6 +127,7 @@ Content-Type: application/json
   "name": "Limpeza dental",
   "dentistId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
   "price": 150,
+  "durationMinutes": 30,
   "isPeriodic": true,
   "status": "disponivel"
 }
@@ -161,6 +169,8 @@ X-Dentist-Id: 3fa85f64-5717-4562-b3fc-2c963f66afa6
 | `disponivel`   | Disponível       |
 | `indisponivel` | Indisponível     |
 | `emBreve`      | Em breve         |
+
+Pedidos começam `Pending`. O tipo `Private` registra preço em centavos no pedido; `Insurance` exige `insuranceName` e `insuranceCardNumber`. Datas precisam de offset ISO 8601 e são salvas em UTC. Expediente semanal usa `America/Sao_Paulo`. Paciente só pode cancelar consulta confirmada com ao menos 24 horas; dentista pode cancelar a qualquer momento.
 
 ---
 

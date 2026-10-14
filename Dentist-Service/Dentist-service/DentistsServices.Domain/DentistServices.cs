@@ -6,6 +6,7 @@ public class DentistServices
     public string Name { get; private set; } = null!;
     public Guid DentistId { get; private set; }
     public int Price { get; private set; }
+    public int DurationMinutes { get; private set; }
     public DateTime CreatedAt { get; private set; }
     public DateTime UpdatedAt { get; private set; }
     public DateTime DeletedAt { get; private set; }
@@ -24,12 +25,14 @@ public class DentistServices
         Guid dentistId,
         int price,
         bool isPeriodic,
-        DentistServiceStatus status)
+        DentistServiceStatus status,
+        int durationMinutes = 30)
     {
         Id = id;
         Name = name;
         DentistId = dentistId;
         Price = price;
+        DurationMinutes = durationMinutes;
         Isperiodic = isPeriodic;
         Status = status;
         CreatedAt = DateTime.UtcNow;
@@ -39,10 +42,11 @@ public class DentistServices
     /// <summary>
     /// Atualiza os dados mutáveis do serviço, preservando Id, DentistId e CreatedAt.
     /// </summary>
-    public void Update(string name, int price, bool isPeriodic, DentistServiceStatus status)
+    public void Update(string name, int price, bool isPeriodic, DentistServiceStatus status, int durationMinutes = 30)
     {
         Name = name;
         Price = price;
+        DurationMinutes = durationMinutes;
         Isperiodic = isPeriodic;
         Status = status;
         UpdatedAt = DateTime.UtcNow;

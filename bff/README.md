@@ -82,12 +82,14 @@ curl -H "Authorization: Bearer $TOKEN" http://localhost:3000/api/employees
 
 ## Matriz RBAC
 
-| Recurso                         |          `employ`          | `dentist` | `pacient` |
-| ------------------------------- | :------------------------: | :-------: | :-------: |
-| `/api/dentist-services` (todas) |            403             |    ✅     |    403    |
-| `/api/employees` (todas)        |             ✅             |    403    |    403    |
-| `/health`                       |          público           |  público  |  público  |
-| `/docs`                         | conforme `SWAGGER_ENABLED` |           |           |
+| Recurso                                               |          `employ`          | `dentist` | `pacient` |
+| ----------------------------------------------------- | :------------------------: | :-------: | :-------: |
+| `/api/dentist-services` (todas)                       |            403             |    ✅     |    403    |
+| `/api/appointments`, `/api/availability`              |            403             |    ✅     |    ✅     |
+| `/api/dentist-schedule/*`, confirmar/rejeitar pedidos |            403             |    ✅     |    403    |
+| `/api/employees` (todas)                              |             ✅             |    403    |    403    |
+| `/health`                                             |          público           |  público  |  público  |
+| `/docs`                                               | conforme `SWAGGER_ENABLED` |           |           |
 
 Sem token/token inválido → `401`; sem a role → `403`. Rotas sem
 `@Public()`/`@Roles()` negam por padrão (fail-closed). O cliente nunca envia

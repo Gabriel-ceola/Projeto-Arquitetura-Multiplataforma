@@ -4,6 +4,7 @@ import {
   DownstreamValidationError,
 } from '@shared/domain/common-errors';
 import { HEADERS } from '@shared/infrastructure/constants/headers';
+import { DomainError } from '@shared/domain/domain-error';
 import { correlationIdStorage } from './correlation-id.storage';
 
 export class DownstreamHttpStatusError extends Error {
@@ -13,6 +14,14 @@ export class DownstreamHttpStatusError extends Error {
   ) {
     super(message);
     this.name = 'DownstreamHttpStatusError';
+  }
+}
+
+export class DownstreamConflictError extends DomainError {
+  readonly code = 'DOWNSTREAM_CONFLICT';
+  constructor(message: string) {
+    super(message);
+    this.name = 'DownstreamConflictError';
   }
 }
 
@@ -87,11 +96,14 @@ export class DownstreamHttpClient {
       throw new DownstreamValidationError(message);
     }
 
-    if (
-      response.status === 403 ||
-      response.status === 404 ||
-      response.status === 409
-    ) {
+    if (response.status === 409) {
+      const message =
+        ((responseBody as Record<string, unknown>)?.['message'] as string) ||
+        'Conflito de agenda.';
+      throw new DownstreamConflictError(message);
+    }
+
+    if (response.status === 403 || response.status === 404) {
       const message =
         ((responseBody as Record<string, unknown>)?.['message'] as string) ||
         `Erro ${response.status}.`;

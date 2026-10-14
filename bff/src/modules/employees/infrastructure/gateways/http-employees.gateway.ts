@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import {
+  DownstreamConflictError,
   DownstreamHttpClient,
   DownstreamHttpStatusError,
 } from '@shared/infrastructure/http/downstream-http-client';
@@ -87,19 +88,16 @@ export class HttpEmployeesGateway implements EmployeesGateway {
   }
 
   private translateError(err: unknown): Error {
-    if (err instanceof DownstreamHttpStatusError) {
-      if (err.status === 404) {
-        const notFound = new EmployeeNotFoundError();
-        if (err.message && err.message !== 'Erro 404.') {
-          notFound.message = err.message;
-        }
-        return notFound;
+    // 409 do Employee-service (CPF já cadastrado) chega como DownstreamConflictError
+    if (err instanceof DownstreamConflictError) {
+      return new EmployeeConflictError(err.message);
+    }
+    if (err instanceof DownstreamHttpStatusError && err.status === 404) {
+      const notFound = new EmployeeNotFoundError();
+      if (err.message && err.message !== 'Erro 404.') {
+        notFound.message = err.message;
       }
-      if (err.status === 409) {
-        return err.message && err.message !== 'Erro 409.'
-          ? new EmployeeConflictError(err.message)
-          : new EmployeeConflictError();
-      }
+      return notFound;
     }
     return err as Error;
   }

@@ -14,7 +14,8 @@ public record CreateDentistServicesRequest(
     Guid DentistId,
     int Price,
     bool IsPeriodic,
-    DentistServiceStatus Status
+    DentistServiceStatus Status,
+    int DurationMinutes = 30
 );
 
 /// <summary>
@@ -24,7 +25,8 @@ public record UpdateDentistServicesRequest(
     string Name,
     int Price,
     bool IsPeriodic,
-    DentistServiceStatus Status
+    DentistServiceStatus Status,
+    int DurationMinutes = 30
 );
 
 // ──────────────────────────────────────────────
@@ -42,5 +44,6 @@ public record DentistServicesResponse(
     bool IsPeriodic,
     DentistServiceStatus Status,
     DateTime CreatedAt,
-    DateTime UpdatedAt
+    DateTime UpdatedAt,
+    int DurationMinutes = 30
 );

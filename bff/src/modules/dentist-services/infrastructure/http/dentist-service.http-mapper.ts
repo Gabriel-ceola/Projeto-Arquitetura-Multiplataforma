@@ -9,6 +9,7 @@ export function toResponseDto(
   dto.name = entity.name;
   dto.dentistId = entity.dentistId;
   dto.price = entity.price;
+  dto.durationMinutes = entity.durationMinutes;
   dto.isPeriodic = entity.isPeriodic;
   dto.status = entity.status;
   dto.createdAt = entity.createdAt.toISOString();

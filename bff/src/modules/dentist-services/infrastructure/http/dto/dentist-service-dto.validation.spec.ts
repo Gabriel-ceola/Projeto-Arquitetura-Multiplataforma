@@ -6,6 +6,7 @@ import { DentistServiceStatus } from '../../../domain/dentist-service-status.enu
 const valido = () => ({
   name: 'Limpeza completa',
   price: 100,
+  durationMinutes: 30,
   isPeriodic: false,
   status: DentistServiceStatus.Disponivel,
 });

@@ -22,6 +22,9 @@ public class DentistServicesValidator : AbstractValidator<DentistServices>, IDen
         RuleFor(x => x.Price)
             .GreaterThan(0).WithMessage("O preço deve ser maior que zero.");
 
+        RuleFor(x => x.DurationMinutes)
+            .InclusiveBetween(5, 480).WithMessage("A duração deve estar entre 5 e 480 minutos.");
+
         RuleFor(x => x.Status)
             .IsInEnum().WithMessage("Status inválido para o serviço.");
     }
