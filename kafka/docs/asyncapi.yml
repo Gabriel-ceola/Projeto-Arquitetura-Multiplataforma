@@ -1,0 +1,407 @@
+asyncapi: 3.0.0
+info:
+  title: Odontologia Integrada - Eventos
+  version: 1.0.0
+  description: |
+    Contrato dos eventos trocados pelo Message-service (Kafka).
+
+    Garantias e regras:
+    - Entrega at-least-once. Um mesmo evento pode chegar mais de uma vez; os consumidores
+      devem deduplicar pelo `eventId`.
+    - A chave da mensagem é sempre o `appointmentId`, o que mantém a ordem dos eventos de um
+      mesmo agendamento dentro da partição.
+    - Mudanças de schema são apenas aditivas. Uma mudança incompatível exige incrementar
+      `eventVersion` e manter a versão anterior até todos os consumidores migrarem.
+    - Datas em UTC, no formato ISO 8601.
+    - Mensagens que um consumidor não consegue processar vão para o tópico `<tópico>.dlq`.
+
+    Os canais de pagamento e de plano de saúde já estão definidos, mas os serviços que os
+    produzem (Payment-service e healthInsurance-service) ainda não existem.
+
+servers:
+  local:
+    host: localhost:9092
+    protocol: kafka
+    description: Broker local (`kafka/docker-compose.yaml`). Containers na rede `odontologia-network` usam `kafka:19092`.
+
+defaultContentType: application/json
+
+channels:
+  appointments:
+    address: appointments
+    description: |
+      Ciclo de vida dos agendamentos. Hoje é publicado pelo Dentist-Service, onde o agendamento
+      está implementado, até existir o Scheduled-Service previsto no diagrama C4.
+    messages:
+      AppointmentRequested:
+        $ref: '#/components/messages/AppointmentRequested'
+      AppointmentConfirmed:
+        $ref: '#/components/messages/AppointmentConfirmed'
+      AppointmentRejected:
+        $ref: '#/components/messages/AppointmentRejected'
+      AppointmentCancelled:
+        $ref: '#/components/messages/AppointmentCancelled'
+  payments:
+    address: payments
+    description: Resultado das cobranças feitas pelo Payment-service (planejado).
+    messages:
+      PaymentApproved:
+        $ref: '#/components/messages/PaymentApproved'
+      PaymentFailed:
+        $ref: '#/components/messages/PaymentFailed'
+  health-insurance:
+    address: health-insurance
+    description: Resultado das autorizações de plano de saúde feitas pelo healthInsurance-service (planejado).
+    messages:
+      InsuranceAuthorized:
+        $ref: '#/components/messages/InsuranceAuthorized'
+      InsuranceDenied:
+        $ref: '#/components/messages/InsuranceDenied'
+  appointments.dlq:
+    address: appointments.dlq
+    description: Mensagens de `appointments` que algum consumidor não conseguiu processar.
+    messages:
+      DeadLetter:
+        $ref: '#/components/messages/DeadLetter'
+  payments.dlq:
+    address: payments.dlq
+    description: Mensagens de `payments` que algum consumidor não conseguiu processar.
+    messages:
+      DeadLetter:
+        $ref: '#/components/messages/DeadLetter'
+  health-insurance.dlq:
+    address: health-insurance.dlq
+    description: Mensagens de `health-insurance` que algum consumidor não conseguiu processar.
+    messages:
+      DeadLetter:
+        $ref: '#/components/messages/DeadLetter'
+
+operations:
+  dentistServicePublishesAppointments:
+    action: send
+    channel:
+      $ref: '#/channels/appointments'
+    summary: Dentist-Service publica o ciclo de vida dos agendamentos via outbox transacional.
+  paymentServicePublishesPayments:
+    action: send
+    channel:
+      $ref: '#/channels/payments'
+    summary: Payment-service publica o resultado das cobranças (planejado).
+  healthInsuranceServicePublishesAuthorizations:
+    action: send
+    channel:
+      $ref: '#/channels/health-insurance'
+    summary: healthInsurance-service publica o resultado das autorizações (planejado).
+  dentistServiceConsumesPayments:
+    action: receive
+    channel:
+      $ref: '#/channels/payments'
+    summary: Dentist-Service (grupo `dentist-service`) consome pagamentos. Ainda não há handlers de negócio.
+  dentistServiceConsumesAuthorizations:
+    action: receive
+    channel:
+      $ref: '#/channels/health-insurance'
+    summary: Dentist-Service (grupo `dentist-service`) consome autorizações. Ainda não há handlers de negócio.
+
+components:
+  messages:
+    AppointmentRequested:
+      name: AppointmentRequested
+      summary: Paciente ou dentista solicitou uma consulta. O agendamento nasce com status `Pending`.
+      bindings:
+        kafka:
+          $ref: '#/components/messageBindings/appointmentKey'
+      payload:
+        allOf:
+          - $ref: '#/components/schemas/EventEnvelope'
+          - type: object
+            properties:
+              eventType:
+                const: AppointmentRequested
+              data:
+                $ref: '#/components/schemas/AppointmentEventData'
+    AppointmentConfirmed:
+      name: AppointmentConfirmed
+      summary: O dentista confirmou o agendamento.
+      bindings:
+        kafka:
+          $ref: '#/components/messageBindings/appointmentKey'
+      payload:
+        allOf:
+          - $ref: '#/components/schemas/EventEnvelope'
+          - type: object
+            properties:
+              eventType:
+                const: AppointmentConfirmed
+              data:
+                $ref: '#/components/schemas/AppointmentEventData'
+    AppointmentRejected:
+      name: AppointmentRejected
+      summary: O dentista rejeitou o agendamento.
+      bindings:
+        kafka:
+          $ref: '#/components/messageBindings/appointmentKey'
+      payload:
+        allOf:
+          - $ref: '#/components/schemas/EventEnvelope'
+          - type: object
+            properties:
+              eventType:
+                const: AppointmentRejected
+              data:
+                $ref: '#/components/schemas/AppointmentEventData'
+    AppointmentCancelled:
+      name: AppointmentCancelled
+      summary: O agendamento foi cancelado pelo dentista ou pelo paciente.
+      bindings:
+        kafka:
+          $ref: '#/components/messageBindings/appointmentKey'
+      payload:
+        allOf:
+          - $ref: '#/components/schemas/EventEnvelope'
+          - type: object
+            properties:
+              eventType:
+                const: AppointmentCancelled
+              data:
+                $ref: '#/components/schemas/AppointmentCancelledData'
+    PaymentApproved:
+      name: PaymentApproved
+      summary: Cobrança de um agendamento aprovada (rascunho v1).
+      bindings:
+        kafka:
+          $ref: '#/components/messageBindings/appointmentKey'
+      payload:
+        allOf:
+          - $ref: '#/components/schemas/EventEnvelope'
+          - type: object
+            properties:
+              eventType:
+                const: PaymentApproved
+              data:
+                $ref: '#/components/schemas/PaymentApprovedData'
+    PaymentFailed:
+      name: PaymentFailed
+      summary: Cobrança de um agendamento recusada ou com erro (rascunho v1).
+      bindings:
+        kafka:
+          $ref: '#/components/messageBindings/appointmentKey'
+      payload:
+        allOf:
+          - $ref: '#/components/schemas/EventEnvelope'
+          - type: object
+            properties:
+              eventType:
+                const: PaymentFailed
+              data:
+                $ref: '#/components/schemas/PaymentFailedData'
+    InsuranceAuthorized:
+      name: InsuranceAuthorized
+      summary: Plano de saúde autorizou o procedimento do agendamento (rascunho v1).
+      bindings:
+        kafka:
+          $ref: '#/components/messageBindings/appointmentKey'
+      payload:
+        allOf:
+          - $ref: '#/components/schemas/EventEnvelope'
+          - type: object
+            properties:
+              eventType:
+                const: InsuranceAuthorized
+              data:
+                $ref: '#/components/schemas/InsuranceAuthorizedData'
+    InsuranceDenied:
+      name: InsuranceDenied
+      summary: Plano de saúde negou o procedimento do agendamento (rascunho v1).
+      bindings:
+        kafka:
+          $ref: '#/components/messageBindings/appointmentKey'
+      payload:
+        allOf:
+          - $ref: '#/components/schemas/EventEnvelope'
+          - type: object
+            properties:
+              eventType:
+                const: InsuranceDenied
+              data:
+                $ref: '#/components/schemas/InsuranceDeniedData'
+    DeadLetter:
+      name: DeadLetter
+      summary: Mensagem original, sem alterações, com a chave original e headers que explicam a falha.
+      headers:
+        type: object
+        properties:
+          dlq-original-topic:
+            type: string
+          dlq-original-partition:
+            type: string
+          dlq-original-offset:
+            type: string
+          dlq-consumer-group:
+            type: string
+          dlq-error:
+            type: string
+      payload:
+        type: string
+        description: Valor original da mensagem, que pode não ser um JSON válido.
+
+  messageBindings:
+    appointmentKey:
+      key:
+        type: string
+        format: uuid
+        description: Id do agendamento (`appointmentId`).
+      bindingVersion: 0.5.0
+
+  schemas:
+    EventEnvelope:
+      type: object
+      required: [eventId, eventType, eventVersion, occurredAtUtc, source, correlationId, data]
+      properties:
+        eventId:
+          type: string
+          format: uuid
+          description: Id único do evento (UUID v7). Use para deduplicar.
+        eventType:
+          type: string
+          description: Nome do evento. Define o formato de `data`.
+        eventVersion:
+          type: integer
+          minimum: 1
+        occurredAtUtc:
+          type: string
+          format: date-time
+        source:
+          type: string
+          description: Serviço que publicou o evento (ex. `dentist-service`).
+        correlationId:
+          type: string
+          description: Id de correlação da requisição de origem (header `x-correlation-id` propagado pelo BFF).
+        data:
+          type: object
+      example:
+        eventId: 0199e3c4-6a8b-7c21-9d3e-4f5a6b7c8d9e
+        eventType: AppointmentRequested
+        eventVersion: 1
+        occurredAtUtc: '2026-10-14T15:30:00Z'
+        source: dentist-service
+        correlationId: 8f14e45f-ceea-467a-9575-0f5f4b6b2c11
+        data:
+          appointment:
+            appointmentId: 7c9e6679-7425-40de-944b-e07fc1f90ae7
+            dentistId: 3fa85f64-5717-4562-b3fc-2c963f66afa6
+            patientId: 5b1f3c2a-9d84-4e1b-a7c6-2f0e9d8c7b6a
+            serviceId: 1d2c3b4a-5e6f-4a7b-8c9d-0e1f2a3b4c5d
+            startAtUtc: '2026-10-20T13:00:00Z'
+            endAtUtc: '2026-10-20T13:30:00Z'
+            type: Private
+            status: Pending
+            priceCents: 15000
+            insuranceName: null
+
+    AppointmentSnapshot:
+      type: object
+      required: [appointmentId, dentistId, patientId, serviceId, startAtUtc, endAtUtc, type, status, priceCents]
+      description: Estado do agendamento no momento do evento. O número da carteirinha nunca é publicado.
+      properties:
+        appointmentId:
+          type: string
+          format: uuid
+        dentistId:
+          type: string
+          format: uuid
+        patientId:
+          type: string
+          format: uuid
+        serviceId:
+          type: string
+          format: uuid
+        startAtUtc:
+          type: string
+          format: date-time
+        endAtUtc:
+          type: string
+          format: date-time
+        type:
+          type: string
+          enum: [Private, Insurance]
+        status:
+          type: string
+          enum: [Pending, Confirmed, Rejected, Cancelled]
+        priceCents:
+          type: integer
+          description: Preço em centavos. Zero quando o tipo é `Insurance`.
+        insuranceName:
+          type: [string, 'null']
+
+    AppointmentEventData:
+      type: object
+      required: [appointment]
+      properties:
+        appointment:
+          $ref: '#/components/schemas/AppointmentSnapshot'
+
+    AppointmentCancelledData:
+      type: object
+      required: [appointment, cancelledBy]
+      properties:
+        appointment:
+          $ref: '#/components/schemas/AppointmentSnapshot'
+        cancelledBy:
+          type: string
+          enum: [Dentist, Patient]
+
+    PaymentApprovedData:
+      type: object
+      required: [paymentId, appointmentId, amountCents, approvedAtUtc]
+      properties:
+        paymentId:
+          type: string
+          format: uuid
+        appointmentId:
+          type: string
+          format: uuid
+        amountCents:
+          type: integer
+        approvedAtUtc:
+          type: string
+          format: date-time
+
+    PaymentFailedData:
+      type: object
+      required: [paymentId, appointmentId, reason]
+      properties:
+        paymentId:
+          type: string
+          format: uuid
+        appointmentId:
+          type: string
+          format: uuid
+        reason:
+          type: string
+
+    InsuranceAuthorizedData:
+      type: object
+      required: [authorizationId, appointmentId, insuranceName]
+      properties:
+        authorizationId:
+          type: string
+          format: uuid
+        appointmentId:
+          type: string
+          format: uuid
+        insuranceName:
+          type: string
+
+    InsuranceDeniedData:
+      type: object
+      required: [authorizationId, appointmentId, reason]
+      properties:
+        authorizationId:
+          type: string
+          format: uuid
+        appointmentId:
+          type: string
+          format: uuid
+        reason:
+          type: string

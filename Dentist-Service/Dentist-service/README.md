@@ -74,6 +74,8 @@ dotnet ef database update
 
 A migration `20261013120000_AddAppointments` adiciona duração aos serviços, expediente semanal, exceções e pedidos de consulta.
 
+A migration `AddOutboxMessages` cria a tabela `outbox_messages`, usada para publicar eventos no Kafka. Sem ela, toda criação ou mudança de status de agendamento retorna erro 500.
+
 ---
 
 ## Executando a API
@@ -92,6 +94,25 @@ A documentação OpenAPI (Scalar/Swagger) estará em:
 ```
 http://localhost:5068/openapi/v1.json
 ```
+
+---
+
+## Mensageria (Kafka)
+
+O serviço publica o ciclo de vida dos agendamentos no tópico `appointments` e consome os tópicos `payments` e `health-insurance`. Como subir o broker, o formato dos eventos e como criar handlers está em [`kafka/README.md`](../../kafka/README.md).
+
+| Ação                                    | Evento publicado                                     |
+|-----------------------------------------|------------------------------------------------------|
+| `POST /api/appointments`                | `AppointmentRequested`                               |
+| `POST /api/appointments/{id}/confirm`   | `AppointmentConfirmed`                               |
+| `POST /api/appointments/{id}/reject`    | `AppointmentRejected`                                |
+| `POST /api/appointments/{id}/cancel`    | `AppointmentCancelled` (com `cancelledBy`)           |
+
+Os eventos são gravados na tabela `outbox_messages` na mesma transação do agendamento e publicados em segundo plano. Se o Kafka estiver fora do ar, a API continua respondendo normalmente e os eventos são publicados quando ele voltar.
+
+Ordem de subida: Kafka, banco, `dotnet ef database update` e então `dotnet run`. Para rodar sem o Kafka, use `"Kafka": { "Enabled": false }` no `appsettings.Development.json`.
+
+Ainda não há handlers de negócio para pagamentos e planos de saúde. Eles entram junto com o Payment-service e o healthInsurance-service.
 
 ---
 

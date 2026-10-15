@@ -22,6 +22,108 @@ namespace Dentist_service.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("Dentist_service.DentistsServices.Domain.Appointment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at_utc");
+
+                    b.Property<Guid>("DentistId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("dentist_id");
+
+                    b.Property<DateTime>("EndAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("end_at_utc");
+
+                    b.Property<string>("InsuranceCardNumber")
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)")
+                        .HasColumnName("insurance_card_number");
+
+                    b.Property<string>("InsuranceName")
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)")
+                        .HasColumnName("insurance_name");
+
+                    b.Property<Guid>("PatientId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("patient_id");
+
+                    b.Property<int>("PriceCents")
+                        .HasColumnType("integer")
+                        .HasColumnName("price_cents");
+
+                    b.Property<Guid>("ServiceId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("service_id");
+
+                    b.Property<DateTime>("StartAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("start_at_utc");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("status");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("type");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PatientId", "StartAtUtc")
+                        .HasDatabaseName("ix_appointments_patient_start");
+
+                    b.HasIndex("DentistId", "StartAtUtc", "EndAtUtc")
+                        .HasDatabaseName("ix_appointments_dentist_interval");
+
+                    b.ToTable("appointments", (string)null);
+                });
+
+            modelBuilder.Entity("Dentist_service.DentistsServices.Domain.DentistScheduleException", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateOnly>("Date")
+                        .HasColumnType("date")
+                        .HasColumnName("date");
+
+                    b.Property<Guid>("DentistId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("dentist_id");
+
+                    b.Property<TimeOnly?>("EndTime")
+                        .HasColumnType("time without time zone")
+                        .HasColumnName("end_time");
+
+                    b.Property<bool>("IsClosed")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_closed");
+
+                    b.Property<TimeOnly?>("StartTime")
+                        .HasColumnType("time without time zone")
+                        .HasColumnName("start_time");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DentistId", "Date")
+                        .IsUnique()
+                        .HasDatabaseName("ix_dentist_schedule_exceptions_dentist_date");
+
+                    b.ToTable("dentist_schedule_exceptions", (string)null);
+                });
+
             modelBuilder.Entity("Dentist_service.DentistsServices.Domain.DentistServices", b =>
                 {
                     b.Property<Guid>("Id")
@@ -42,6 +144,7 @@ namespace Dentist_service.Migrations
                         .HasColumnName("dentist_id");
 
                     b.Property<int>("DurationMinutes")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("integer")
                         .HasDefaultValue(30)
                         .HasColumnName("duration_minutes");
@@ -79,47 +182,89 @@ namespace Dentist_service.Migrations
 
             modelBuilder.Entity("Dentist_service.DentistsServices.Domain.DentistWeeklyHours", b =>
                 {
-                    b.Property<Guid>("Id").ValueGeneratedOnAdd().HasColumnType("uuid").HasColumnName("id");
-                    b.Property<Guid>("DentistId").HasColumnType("uuid").HasColumnName("dentist_id");
-                    b.Property<int>("DayOfWeek").HasColumnType("integer").HasColumnName("day_of_week");
-                    b.Property<TimeOnly>("StartTime").HasColumnType("time without time zone").HasColumnName("start_time");
-                    b.Property<TimeOnly>("EndTime").HasColumnType("time without time zone").HasColumnName("end_time");
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<int>("DayOfWeek")
+                        .HasColumnType("integer")
+                        .HasColumnName("day_of_week");
+
+                    b.Property<Guid>("DentistId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("dentist_id");
+
+                    b.Property<TimeOnly>("EndTime")
+                        .HasColumnType("time without time zone")
+                        .HasColumnName("end_time");
+
+                    b.Property<TimeOnly>("StartTime")
+                        .HasColumnType("time without time zone")
+                        .HasColumnName("start_time");
+
                     b.HasKey("Id");
-                    b.HasIndex("DentistId", "DayOfWeek").IsUnique().HasDatabaseName("ix_dentist_weekly_hours_dentist_day");
+
+                    b.HasIndex("DentistId", "DayOfWeek")
+                        .IsUnique()
+                        .HasDatabaseName("ix_dentist_weekly_hours_dentist_day");
+
                     b.ToTable("dentist_weekly_hours", (string)null);
                 });
 
-            modelBuilder.Entity("Dentist_service.DentistsServices.Domain.DentistScheduleException", b =>
+            modelBuilder.Entity("Messaging.Outbox.OutboxMessage", b =>
                 {
-                    b.Property<Guid>("Id").ValueGeneratedOnAdd().HasColumnType("uuid").HasColumnName("id");
-                    b.Property<Guid>("DentistId").HasColumnType("uuid").HasColumnName("dentist_id");
-                    b.Property<DateOnly>("Date").HasColumnType("date").HasColumnName("date");
-                    b.Property<bool>("IsClosed").HasColumnType("boolean").HasColumnName("is_closed");
-                    b.Property<TimeOnly?>("StartTime").HasColumnType("time without time zone").HasColumnName("start_time");
-                    b.Property<TimeOnly?>("EndTime").HasColumnType("time without time zone").HasColumnName("end_time");
-                    b.HasKey("Id");
-                    b.HasIndex("DentistId", "Date").IsUnique().HasDatabaseName("ix_dentist_schedule_exceptions_dentist_date");
-                    b.ToTable("dentist_schedule_exceptions", (string)null);
-                });
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
 
-            modelBuilder.Entity("Dentist_service.DentistsServices.Domain.Appointment", b =>
-                {
-                    b.Property<Guid>("Id").ValueGeneratedOnAdd().HasColumnType("uuid").HasColumnName("id");
-                    b.Property<Guid>("DentistId").HasColumnType("uuid").HasColumnName("dentist_id");
-                    b.Property<Guid>("PatientId").HasColumnType("uuid").HasColumnName("patient_id");
-                    b.Property<Guid>("ServiceId").HasColumnType("uuid").HasColumnName("service_id");
-                    b.Property<DateTime>("StartAtUtc").HasColumnType("timestamp with time zone").HasColumnName("start_at_utc");
-                    b.Property<DateTime>("EndAtUtc").HasColumnType("timestamp with time zone").HasColumnName("end_at_utc");
-                    b.Property<string>("Type").IsRequired().HasColumnType("text").HasColumnName("type");
-                    b.Property<string>("Status").IsRequired().HasColumnType("text").HasColumnName("status");
-                    b.Property<int>("PriceCents").HasColumnType("integer").HasColumnName("price_cents");
-                    b.Property<string>("InsuranceName").HasMaxLength(120).HasColumnType("character varying(120)").HasColumnName("insurance_name");
-                    b.Property<string>("InsuranceCardNumber").HasMaxLength(80).HasColumnType("character varying(80)").HasColumnName("insurance_card_number");
-                    b.Property<DateTime>("CreatedAtUtc").HasColumnType("timestamp with time zone").HasColumnName("created_at_utc");
+                    b.Property<int>("Attempts")
+                        .HasColumnType("integer")
+                        .HasColumnName("attempts");
+
+                    b.Property<string>("EventType")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("event_type");
+
+                    b.Property<string>("Key")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("key");
+
+                    b.Property<string>("LastError")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)")
+                        .HasColumnName("last_error");
+
+                    b.Property<DateTime>("OccurredAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("occurred_at_utc");
+
+                    b.Property<string>("Payload")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("payload");
+
+                    b.Property<DateTime?>("ProcessedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("processed_at_utc");
+
+                    b.Property<string>("Topic")
+                        .IsRequired()
+                        .HasMaxLength(249)
+                        .HasColumnType("character varying(249)")
+                        .HasColumnName("topic");
+
                     b.HasKey("Id");
-                    b.HasIndex("DentistId", "StartAtUtc", "EndAtUtc").HasDatabaseName("ix_appointments_dentist_interval");
-                    b.HasIndex("PatientId", "StartAtUtc").HasDatabaseName("ix_appointments_patient_start");
-                    b.ToTable("appointments", (string)null);
+
+                    b.HasIndex("ProcessedAtUtc", "OccurredAtUtc")
+                        .HasDatabaseName("ix_outbox_messages_pending");
+
+                    b.ToTable("outbox_messages", (string)null);
                 });
 #pragma warning restore 612, 618
         }

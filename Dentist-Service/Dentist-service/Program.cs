@@ -2,7 +2,9 @@ using Dentist_service.DentistsServices.Application.UseCases;
 using Dentist_service.DentistsServices.Domain.Ports;
 using Dentist_service.DentistsServices.Domain.Validators;
 using Dentist_service.DentistsServices.Infrastructure.Data;
+using Dentist_service.DentistsServices.Infrastructure.Events;
 using Dentist_service.DentistsServices.Infrastructure.Repositories;
+using Messaging;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -12,6 +14,10 @@ var builder = WebApplication.CreateBuilder(args);
 // ──────────────────────────────────────────────
 builder.Services.AddDbContext<DentistServicesDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+builder.Services.AddKafkaMessaging(builder.Configuration)
+    .AddOutbox<DentistServicesDbContext>()
+    .AddConsumer();
 
 // ──────────────────────────────────────────────
 // Portas → Adaptadores (Hexagonal)
@@ -25,6 +31,8 @@ builder.Services.AddScoped<IDentistServicesValidator, DentistServicesValidator>(
 
 // Porta de entrada: caso de uso
 builder.Services.AddScoped<IDentistServicesUseCase, DentistServicesUseCase>();
+
+builder.Services.AddScoped<IAppointmentEventPublisher, AppointmentEventPublisher>();
 
 // ──────────────────────────────────────────────
 // API

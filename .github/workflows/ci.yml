@@ -45,6 +45,42 @@ jobs:
       - name: Build
         run: pnpm run build
 
+  messaging:
+    name: Messaging (build & test)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Restore dependencies
+        run: dotnet restore Messaging/Messaging.sln
+
+      - name: Build
+        run: dotnet build Messaging/Messaging.sln --no-restore --configuration Release
+
+      - name: Test
+        run: >
+          dotnet test Messaging/Messaging.Tests/Messaging.Tests.csproj
+          --no-build
+          --configuration Release
+          --verbosity normal
+          --logger "trx;LogFileName=messaging-test-results.trx"
+          --results-directory ./messaging-test-results
+
+      - name: Publish test results
+        uses: dorny/test-reporter@v1
+        if: always()
+        with:
+          name: Messaging xUnit Tests
+          path: messaging-test-results/*.trx
+          reporter: dotnet-trx
+
   test:
     name: Build & Test
     runs-on: ubuntu-latest

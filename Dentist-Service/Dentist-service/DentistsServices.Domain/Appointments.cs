@@ -2,6 +2,7 @@ namespace Dentist_service.DentistsServices.Domain;
 
 public enum AppointmentStatus { Pending, Confirmed, Rejected, Cancelled }
 public enum AppointmentType { Private, Insurance }
+public enum AppointmentActor { Dentist, Patient }
 
 public class DentistWeeklyHours
 {
