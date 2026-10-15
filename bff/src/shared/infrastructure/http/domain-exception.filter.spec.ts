@@ -16,6 +16,11 @@ import {
   DownstreamUnavailableError,
   DownstreamTimeoutError,
 } from '@shared/domain/common-errors';
+import { DomainError } from '@shared/domain/domain-error';
+
+class TestConflictError extends DomainError {
+  readonly code = 'RESOURCE_CONFLICT';
+}
 
 function mockHost() {
   const json = jest.fn();
@@ -39,6 +44,7 @@ describe('DomainExceptionFilter', () => {
     ['INSUFFICIENT_ROLE', new InsufficientRoleError(), 403],
     ['RESOURCE_FORBIDDEN', new DentistServiceForbiddenError(), 403],
     ['RESOURCE_NOT_FOUND', new DentistServiceNotFoundError('x'), 404],
+    ['RESOURCE_CONFLICT', new TestConflictError('conflito'), 409],
     ['DOWNSTREAM_BAD_REQUEST', new DownstreamValidationError('inválido'), 400],
     ['DOWNSTREAM_UNAVAILABLE', new DownstreamUnavailableError(), 502],
     ['DOWNSTREAM_TIMEOUT', new DownstreamTimeoutError(), 504],

@@ -1,0 +1,52 @@
+using Employee_service.Employees.Application.UseCases;
+using Employee_service.Employees.Domain.Ports;
+using Employee_service.Employees.Domain.Validators;
+using Employee_service.Employees.Infrastructure.Data;
+using Employee_service.Employees.Infrastructure.Repositories;
+using Microsoft.EntityFrameworkCore;
+
+var builder = WebApplication.CreateBuilder(args);
+
+// ──────────────────────────────────────────────
+// Infraestrutura: EF Core + PostgreSQL
+// ──────────────────────────────────────────────
+builder.Services.AddDbContext<EmployeeDbContext>(options =>
+    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+// ──────────────────────────────────────────────
+// Portas → Adaptadores (Hexagonal)
+// ──────────────────────────────────────────────
+
+// Porta de saída: repositório
+builder.Services.AddScoped<IEmployeeRepository, EmployeeRepository>();
+
+// Porta de entrada: validação
+builder.Services.AddScoped<IEmployeeValidator, EmployeeValidator>();
+
+// Porta de entrada: caso de uso
+builder.Services.AddScoped<IEmployeeUseCase, EmployeeUseCase>();
+
+// ──────────────────────────────────────────────
+// API
+// ──────────────────────────────────────────────
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        // Permite enviar cargo/status como string ("recepcionista", "ativo") em vez de número inteiro
+        options.JsonSerializerOptions.Converters.Add(
+            new System.Text.Json.Serialization.JsonStringEnumConverter());
+    });
+builder.Services.AddOpenApi();
+
+var app = builder.Build();
+
+if (app.Environment.IsDevelopment())
+{
+    app.MapOpenApi();
+}
+
+app.UseHttpsRedirection();
+
+app.MapControllers();
+
+app.Run();

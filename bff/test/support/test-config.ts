@@ -17,6 +17,7 @@ export function buildTestConfig(overrides: Partial<AppEnv> = {}): AppEnv {
     JWKS_CACHE_MAX_AGE_MS: 600000,
     JWKS_COOLDOWN_MS: 30000,
     DENTIST_SERVICE_BASE_URL: `http://127.0.0.1:9${String(counter).padStart(3, '0')}`,
+    EMPLOYEE_SERVICE_BASE_URL: `http://127.0.0.1:8${String(counter).padStart(3, '0')}`,
     DOWNSTREAM_TIMEOUT_MS: 2000,
     CORS_ORIGINS: '',
     SWAGGER_ENABLED: false,

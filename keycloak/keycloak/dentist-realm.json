@@ -5,7 +5,10 @@
   "registrationAllowed": false,
   "loginWithEmailAllowed": true,
   "roles": {
-    "realm": [{ "name": "dentist", "description": "Dentista dono de serviços" }]
+    "realm": [
+      { "name": "dentist", "description": "Dentista dono de serviços" },
+      { "name": "employ", "description": "Funcionário da clínica (gestão de funcionários)" }
+    ]
   },
   "clients": [
     {
@@ -61,6 +64,19 @@
         { "type": "password", "value": "123456", "temporary": false }
       ],
       "realmRoles": ["dentist"]
+    },
+    {
+      "id": "aef072b3-9947-48ac-b8b7-4088d82534b0",
+      "username": "funcionario1",
+      "email": "funcionario1@teste.com",
+      "emailVerified": true,
+      "firstName": "Funcionario",
+      "lastName": "Teste",
+      "enabled": true,
+      "credentials": [
+        { "type": "password", "value": "123456", "temporary": false }
+      ],
+      "realmRoles": ["employ"]
     }
   ]
 }
