@@ -1,10 +1,14 @@
 using System.Text.Json.Serialization;
 using Microsoft.EntityFrameworkCore;
+using OpenTelemetry.Exporter;
+using OpenTelemetry.Metrics;
+using OpenTelemetry.Resources;
 using PaymentService.Application.Services;
 using PaymentService.Domain.Ports;
 using PaymentService.Infrastructure.Data;
 using PaymentService.Infrastructure.Messaging;
 using PaymentService.Infrastructure.Repositories;
+using PaymentService.Infrastructure.Telemetry;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -14,12 +18,34 @@ builder.Services.AddDbContext<PaymentDbContext>(options =>
 builder.Services.AddScoped<IPaymentRepository, PostgresPaymentRepository>();
 builder.Services.AddSingleton<IPaymentEventPublisher, LoggingPaymentEventPublisher>();
 builder.Services.AddScoped<IPaymentService, PaymentService.Application.Services.PaymentService>();
-builder.Services.AddControllers()
+builder.Services.AddControllers(options =>
+    {
+        // Captura 400 de validação de modelo que acontecem antes da action.
+        options.Filters.Add<ModelValidationMetricsFilter>();
+    })
     .AddJsonOptions(options =>
         options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 builder.Services.AddSwaggerGen();
+
+// ──────────────────────────────────────────────
+// Observabilidade: métricas de negócio + Prometheus
+// ──────────────────────────────────────────────
+builder.Services.AddSingleton<PaymentMetrics>();
+builder.Services.AddHostedService<PaymentMetricsSampler>();
+
+builder.Services.AddOpenTelemetry()
+    .ConfigureResource(resource => resource.AddService("payment-service"))
+    .WithMetrics(metrics => metrics
+        .AddMeter(PaymentMetrics.MeterName)
+        .AddAspNetCoreInstrumentation()
+        .AddHttpClientInstrumentation()
+        .AddRuntimeInstrumentation()
+        .AddPrometheusExporter());
+
+builder.Services.AddHealthChecks()
+    .AddDbContextCheck<PaymentDbContext>("postgres");
 
 var app = builder.Build();
 
@@ -35,13 +61,18 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
     app.UseSwagger();
     app.UseSwaggerUI();
-
 }
-
-app.UseHttpsRedirection();
+else
+{
+    // Em produção mantém o redirecionamento para HTTPS. Em desenvolvimento ele é
+    // dispensado para que o Prometheus possa raspar /metrics via HTTP.
+    app.UseHttpsRedirection();
+}
 
 app.UseAuthorization();
 
 app.MapControllers();
+app.MapHealthChecks("/health");
+app.MapPrometheusScrapingEndpoint();
 
 app.Run();

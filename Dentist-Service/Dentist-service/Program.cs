@@ -1,3 +1,4 @@
+using Dentist_service.DentistsServices.Api.Telemetry;
 using Dentist_service.DentistsServices.Application.UseCases;
 using Dentist_service.DentistsServices.Domain.Ports;
 using Dentist_service.DentistsServices.Domain.Validators;
@@ -5,7 +6,11 @@ using Dentist_service.DentistsServices.Infrastructure.Data;
 using Dentist_service.DentistsServices.Infrastructure.Events;
 using Dentist_service.DentistsServices.Infrastructure.Repositories;
 using Messaging;
+using Messaging.Telemetry;
 using Microsoft.EntityFrameworkCore;
+using OpenTelemetry.Exporter;
+using OpenTelemetry.Metrics;
+using OpenTelemetry.Resources;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -35,9 +40,32 @@ builder.Services.AddScoped<IDentistServicesUseCase, DentistServicesUseCase>();
 builder.Services.AddScoped<IAppointmentEventPublisher, AppointmentEventPublisher>();
 
 // ──────────────────────────────────────────────
+// Observabilidade: métricas de negócio + Prometheus
+// ──────────────────────────────────────────────
+builder.Services.AddSingleton<AppointmentMetrics>();
+builder.Services.AddHostedService<AppointmentMetricsSampler>();
+
+builder.Services.AddOpenTelemetry()
+    .ConfigureResource(resource => resource.AddService("dentist-service"))
+    .WithMetrics(metrics => metrics
+        .AddMeter(AppointmentMetrics.MeterName)
+        .AddMeter(MessagingMetrics.MeterName)
+        .AddAspNetCoreInstrumentation()
+        .AddHttpClientInstrumentation()
+        .AddRuntimeInstrumentation()
+        .AddPrometheusExporter());
+
+builder.Services.AddHealthChecks()
+    .AddDbContextCheck<DentistServicesDbContext>("postgres");
+
+// ──────────────────────────────────────────────
 // API
 // ──────────────────────────────────────────────
-builder.Services.AddControllers()
+builder.Services.AddControllers(options =>
+    {
+        // Captura 400 de validação de modelo que acontecem antes da action.
+        options.Filters.Add<AppointmentModelValidationFilter>();
+    })
     .AddJsonOptions(options =>
     {
         // Permite enviar o status como string ("disponivel") em vez de número inteiro
@@ -52,9 +80,15 @@ if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
 }
-
-app.UseHttpsRedirection();
+else
+{
+    // Em produção mantém o redirecionamento para HTTPS. Em desenvolvimento ele é
+    // dispensado para que o Prometheus possa raspar /metrics via HTTP.
+    app.UseHttpsRedirection();
+}
 
 app.MapControllers();
+app.MapHealthChecks("/health");
+app.MapPrometheusScrapingEndpoint();
 
 app.Run();

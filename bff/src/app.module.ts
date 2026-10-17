@@ -8,6 +8,8 @@ import { CorrelationIdMiddleware } from '@shared/infrastructure/http/correlation
 import { DomainExceptionFilter } from '@shared/infrastructure/http/domain-exception.filter';
 import { HEADERS } from '@shared/infrastructure/constants/headers';
 import { HealthModule } from '@shared/infrastructure/health/health.module';
+import { MetricsModule } from '@shared/infrastructure/metrics/metrics.module';
+import { HttpMetricsMiddleware } from '@shared/infrastructure/metrics/http-metrics.middleware';
 import { AuthModule } from '@modules/auth/infrastructure/auth.module';
 import { DentistServicesModule } from '@modules/dentist-services/infrastructure/dentist-services.module';
 import { AppointmentsModule } from '@modules/appointments/infrastructure/appointments.module';
@@ -44,6 +46,7 @@ import { correlationIdStorage } from '@shared/infrastructure/http/correlation-id
       inject: [APP_CONFIG],
     }),
     HealthModule,
+    MetricsModule,
     AuthModule,
     DentistServicesModule,
     AppointmentsModule,
@@ -62,6 +65,8 @@ import { correlationIdStorage } from '@shared/infrastructure/http/correlation-id
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
-    consumer.apply(CorrelationIdMiddleware).forRoutes('*');
+    consumer
+      .apply(CorrelationIdMiddleware, HttpMetricsMiddleware)
+      .forRoutes('*');
   }
 }

@@ -1,4 +1,5 @@
 using Messaging.Kafka;
+using Messaging.Telemetry;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -15,6 +16,7 @@ public static class MessagingServiceCollectionExtensions
         services.Configure<KafkaOptions>(section);
         services.AddHttpContextAccessor();
         services.TryAddSingleton<IMessageProducer, KafkaMessageProducer>();
+        services.TryAddSingleton<MessagingMetrics>();
 
         return new MessagingBuilder(services, options);
     }
