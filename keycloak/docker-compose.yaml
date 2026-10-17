@@ -5,8 +5,9 @@ services:
       POSTGRES_DB: keycloak
       POSTGRES_USER: keycloak
       POSTGRES_PASSWORD: keycloak
+    # 5433 é usada pelo banco do PaymentService; o Postgres do Keycloak fica em 5435
     ports:
-      - "5433:5432"
+      - "5435:5432"
     volumes:
       - keycloak-db-data:/var/lib/postgresql/data
     healthcheck:

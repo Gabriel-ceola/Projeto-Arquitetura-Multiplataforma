@@ -4,10 +4,13 @@
   "sslRequired": "none",
   "registrationAllowed": false,
   "loginWithEmailAllowed": true,
+  "accessTokenLifespan": 43200,
+  "ssoSessionMaxLifespan": 43200,
   "roles": {
     "realm": [
       { "name": "dentist", "description": "Dentista dono de serviços" },
-      { "name": "employ", "description": "Funcionário da clínica (gestão de funcionários)" }
+      { "name": "employ", "description": "Funcionário da clínica (gestão de funcionários)" },
+      { "name": "pacient", "description": "Paciente que solicita agendamentos" }
     ]
   },
   "clients": [
@@ -77,6 +80,19 @@
         { "type": "password", "value": "123456", "temporary": false }
       ],
       "realmRoles": ["employ"]
+    },
+    {
+      "id": "b7e6c1d2-3f4a-4b5c-8d9e-0a1b2c3d4e5f",
+      "username": "paciente1",
+      "email": "paciente1@teste.com",
+      "emailVerified": true,
+      "firstName": "Paciente",
+      "lastName": "Teste",
+      "enabled": true,
+      "credentials": [
+        { "type": "password", "value": "123456", "temporary": false }
+      ],
+      "realmRoles": ["pacient"]
     }
   ]
 }
