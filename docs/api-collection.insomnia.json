@@ -1,0 +1,913 @@
+{
+  "_type": "export",
+  "__export_format": 4,
+  "__export_date": "2026-10-17T00:00:00.000Z",
+  "__export_source": "insomnia.desktop.app:v2024.5.0",
+  "resources": [
+    {
+      "_id": "wrk_odontologia",
+      "_type": "workspace",
+      "name": "Odontologia Integrada",
+      "description": "Collection dos quatro serviços: BFF (NestJS), Dentist-service, Employee-service e PaymentService (.NET). Configure o ambiente \"Local\" e obtenha um token por perfil no grupo Auth (dentista1/dentist, funcionario1/employ, paciente1/pacient).",
+      "scope": "collection"
+    },
+    {
+      "_id": "env_odontologia_local",
+      "_type": "environment",
+      "parentId": "wrk_odontologia",
+      "name": "Local",
+      "data": {
+        "bff_url": "http://localhost:3000",
+        "dentist_url": "http://localhost:5068",
+        "employee_url": "http://localhost:5070",
+        "payment_url": "http://localhost:5127",
+        "keycloak_url": "http://localhost:8080",
+        "realm": "dentist",
+        "client_id": "dentist-app",
+        "dentist_username": "dentista1",
+        "dentist_password": "123456",
+        "dentist_token": "COLE_AQUI_O_TOKEN",
+        "employ_username": "funcionario1",
+        "employ_password": "123456",
+        "employ_token": "COLE_AQUI_O_TOKEN",
+        "pacient_username": "paciente1",
+        "pacient_password": "123456",
+        "pacient_token": "COLE_AQUI_O_TOKEN",
+        "dentist_id": "COLE_AQUI_UM_UUID",
+        "patient_id": "COLE_AQUI_UM_UUID",
+        "service_id": "COLE_AQUI_UM_UUID",
+        "employee_id": "COLE_AQUI_UM_UUID",
+        "payment_id": "COLE_AQUI_UM_UUID",
+        "appointment_id": "COLE_AQUI_UM_UUID"
+      }
+    },
+    {
+      "_id": "fld_auth",
+      "_type": "request_group",
+      "parentId": "wrk_odontologia",
+      "name": "Auth (Keycloak) — um login por perfil"
+    },
+    {
+      "_id": "req_auth_dentist",
+      "_type": "request",
+      "parentId": "fld_auth",
+      "name": "POST token — dentista1 (role dentist)",
+      "method": "POST",
+      "url": "{{ keycloak_url }}/realms/{{ realm }}/protocol/openid-connect/token",
+      "description": "Perfil dentist. Copie o access_token para a variável dentist_token.",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/x-www-form-urlencoded"
+        }
+      ],
+      "body": {
+        "mimeType": "application/x-www-form-urlencoded",
+        "params": [
+          {
+            "name": "grant_type",
+            "value": "password"
+          },
+          {
+            "name": "client_id",
+            "value": "{{ client_id }}"
+          },
+          {
+            "name": "username",
+            "value": "{{ dentist_username }}"
+          },
+          {
+            "name": "password",
+            "value": "{{ dentist_password }}"
+          }
+        ]
+      }
+    },
+    {
+      "_id": "req_auth_employ",
+      "_type": "request",
+      "parentId": "fld_auth",
+      "name": "POST token — funcionario1 (role employ)",
+      "method": "POST",
+      "url": "{{ keycloak_url }}/realms/{{ realm }}/protocol/openid-connect/token",
+      "description": "Perfil employ. Copie o access_token para a variável employ_token.",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/x-www-form-urlencoded"
+        }
+      ],
+      "body": {
+        "mimeType": "application/x-www-form-urlencoded",
+        "params": [
+          {
+            "name": "grant_type",
+            "value": "password"
+          },
+          {
+            "name": "client_id",
+            "value": "{{ client_id }}"
+          },
+          {
+            "name": "username",
+            "value": "{{ employ_username }}"
+          },
+          {
+            "name": "password",
+            "value": "{{ employ_password }}"
+          }
+        ]
+      }
+    },
+    {
+      "_id": "req_auth_pacient",
+      "_type": "request",
+      "parentId": "fld_auth",
+      "name": "POST token — paciente1 (role pacient)",
+      "method": "POST",
+      "url": "{{ keycloak_url }}/realms/{{ realm }}/protocol/openid-connect/token",
+      "description": "Perfil pacient. Copie o access_token para a variável pacient_token.",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/x-www-form-urlencoded"
+        }
+      ],
+      "body": {
+        "mimeType": "application/x-www-form-urlencoded",
+        "params": [
+          {
+            "name": "grant_type",
+            "value": "password"
+          },
+          {
+            "name": "client_id",
+            "value": "{{ client_id }}"
+          },
+          {
+            "name": "username",
+            "value": "{{ pacient_username }}"
+          },
+          {
+            "name": "password",
+            "value": "{{ pacient_password }}"
+          }
+        ]
+      }
+    },
+    {
+      "_id": "fld_bff",
+      "_type": "request_group",
+      "parentId": "wrk_odontologia",
+      "name": "BFF (NestJS) — JWT Bearer"
+    },
+    {
+      "_id": "req_bff_health",
+      "_type": "request",
+      "parentId": "fld_bff",
+      "name": "GET /health (público)",
+      "method": "GET",
+      "url": "{{ bff_url }}/health"
+    },
+    {
+      "_id": "fld_bff_dentist",
+      "_type": "request_group",
+      "parentId": "fld_bff",
+      "name": "Dentist Services (role dentist)"
+    },
+    {
+      "_id": "req_bff_ds_list",
+      "_type": "request",
+      "parentId": "fld_bff_dentist",
+      "name": "GET /api/dentist-services",
+      "method": "GET",
+      "url": "{{ bff_url }}/api/dentist-services",
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ dentist_token }}"
+      }
+    },
+    {
+      "_id": "req_bff_ds_get",
+      "_type": "request",
+      "parentId": "fld_bff_dentist",
+      "name": "GET /api/dentist-services/:id",
+      "method": "GET",
+      "url": "{{ bff_url }}/api/dentist-services/{{ service_id }}",
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ dentist_token }}"
+      }
+    },
+    {
+      "_id": "req_bff_ds_create",
+      "_type": "request",
+      "parentId": "fld_bff_dentist",
+      "name": "POST /api/dentist-services",
+      "method": "POST",
+      "url": "{{ bff_url }}/api/dentist-services",
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ dentist_token }}"
+      },
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"name\": \"Limpeza completa\",\n  \"price\": 15000,\n  \"durationMinutes\": 30,\n  \"isPeriodic\": false,\n  \"status\": \"disponivel\"\n}"
+      }
+    },
+    {
+      "_id": "req_bff_ds_update",
+      "_type": "request",
+      "parentId": "fld_bff_dentist",
+      "name": "PUT /api/dentist-services/:id",
+      "method": "PUT",
+      "url": "{{ bff_url }}/api/dentist-services/{{ service_id }}",
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ dentist_token }}"
+      },
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"name\": \"Limpeza completa Plus\",\n  \"price\": 20000,\n  \"durationMinutes\": 45,\n  \"isPeriodic\": true,\n  \"status\": \"disponivel\"\n}"
+      }
+    },
+    {
+      "_id": "req_bff_ds_delete",
+      "_type": "request",
+      "parentId": "fld_bff_dentist",
+      "name": "DELETE /api/dentist-services/:id",
+      "method": "DELETE",
+      "url": "{{ bff_url }}/api/dentist-services/{{ service_id }}",
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ dentist_token }}"
+      }
+    },
+    {
+      "_id": "fld_bff_employees",
+      "_type": "request_group",
+      "parentId": "fld_bff",
+      "name": "Employees (role employ)"
+    },
+    {
+      "_id": "req_bff_emp_list",
+      "_type": "request",
+      "parentId": "fld_bff_employees",
+      "name": "GET /api/employees",
+      "method": "GET",
+      "url": "{{ bff_url }}/api/employees",
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ employ_token }}"
+      }
+    },
+    {
+      "_id": "req_bff_emp_get",
+      "_type": "request",
+      "parentId": "fld_bff_employees",
+      "name": "GET /api/employees/:id",
+      "method": "GET",
+      "url": "{{ bff_url }}/api/employees/{{ employee_id }}",
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ employ_token }}"
+      }
+    },
+    {
+      "_id": "req_bff_emp_create",
+      "_type": "request",
+      "parentId": "fld_bff_employees",
+      "name": "POST /api/employees",
+      "method": "POST",
+      "url": "{{ bff_url }}/api/employees",
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ employ_token }}"
+      },
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"name\": \"Maria Souza\",\n  \"cpf\": \"123.456.789-01\",\n  \"email\": \"maria.souza@clinica.com\",\n  \"phone\": \"(43) 99999-8888\",\n  \"role\": \"recepcionista\",\n  \"status\": \"ativo\"\n}"
+      }
+    },
+    {
+      "_id": "req_bff_emp_update",
+      "_type": "request",
+      "parentId": "fld_bff_employees",
+      "name": "PUT /api/employees/:id (CPF imutável)",
+      "method": "PUT",
+      "url": "{{ bff_url }}/api/employees/{{ employee_id }}",
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ employ_token }}"
+      },
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"name\": \"Maria Souza Lima\",\n  \"email\": \"maria.lima@clinica.com\",\n  \"phone\": \"43999998888\",\n  \"role\": \"administrativo\",\n  \"status\": \"ferias\"\n}"
+      }
+    },
+    {
+      "_id": "req_bff_emp_delete",
+      "_type": "request",
+      "parentId": "fld_bff_employees",
+      "name": "DELETE /api/employees/:id",
+      "method": "DELETE",
+      "url": "{{ bff_url }}/api/employees/{{ employee_id }}",
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ employ_token }}"
+      }
+    },
+    {
+      "_id": "fld_bff_appointments",
+      "_type": "request_group",
+      "parentId": "fld_bff",
+      "name": "Appointments / Agenda"
+    },
+    {
+      "_id": "req_bff_avail",
+      "_type": "request",
+      "parentId": "fld_bff_appointments",
+      "name": "GET /api/availability (dentist | pacient)",
+      "method": "GET",
+      "url": "{{ bff_url }}/api/availability?dentistId={{ dentist_id }}&serviceId={{ service_id }}",
+      "description": "Aceita token de dentist ({{ dentist_token }}) ou de pacient ({{ pacient_token }}).",
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ dentist_token }}"
+      }
+    },
+    {
+      "_id": "req_bff_weekly_get",
+      "_type": "request",
+      "parentId": "fld_bff_appointments",
+      "name": "GET /api/dentist-schedule/weekly (dentist)",
+      "method": "GET",
+      "url": "{{ bff_url }}/api/dentist-schedule/weekly",
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ dentist_token }}"
+      }
+    },
+    {
+      "_id": "req_bff_weekly_put",
+      "_type": "request",
+      "parentId": "fld_bff_appointments",
+      "name": "PUT /api/dentist-schedule/weekly (dentist)",
+      "method": "PUT",
+      "url": "{{ bff_url }}/api/dentist-schedule/weekly",
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ dentist_token }}"
+      },
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "[\n  {\n    \"dayOfWeek\": 1,\n    \"startTime\": \"08:00:00\",\n    \"endTime\": \"17:00:00\"\n  },\n  {\n    \"dayOfWeek\": 2,\n    \"startTime\": \"08:00:00\",\n    \"endTime\": \"17:00:00\"\n  },\n  {\n    \"dayOfWeek\": 3,\n    \"startTime\": \"08:00:00\",\n    \"endTime\": \"17:00:00\"\n  },\n  {\n    \"dayOfWeek\": 4,\n    \"startTime\": \"08:00:00\",\n    \"endTime\": \"17:00:00\"\n  },\n  {\n    \"dayOfWeek\": 5,\n    \"startTime\": \"08:00:00\",\n    \"endTime\": \"12:00:00\"\n  }\n]"
+      }
+    },
+    {
+      "_id": "req_bff_exc_get",
+      "_type": "request",
+      "parentId": "fld_bff_appointments",
+      "name": "GET /api/dentist-schedule/exceptions (dentist)",
+      "method": "GET",
+      "url": "{{ bff_url }}/api/dentist-schedule/exceptions",
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ dentist_token }}"
+      }
+    },
+    {
+      "_id": "req_bff_exc_put",
+      "_type": "request",
+      "parentId": "fld_bff_appointments",
+      "name": "PUT /api/dentist-schedule/exceptions (dentist)",
+      "method": "PUT",
+      "url": "{{ bff_url }}/api/dentist-schedule/exceptions",
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ dentist_token }}"
+      },
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"date\": \"2026-11-05\",\n  \"isClosed\": false,\n  \"startTime\": \"09:00:00\",\n  \"endTime\": \"12:00:00\"\n}"
+      }
+    },
+    {
+      "_id": "req_bff_appt_list",
+      "_type": "request",
+      "parentId": "fld_bff_appointments",
+      "name": "GET /api/appointments (dentist | pacient)",
+      "method": "GET",
+      "url": "{{ bff_url }}/api/appointments",
+      "description": "Aceita {{ dentist_token }} ou {{ pacient_token }} (o paciente vê os próprios pedidos).",
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ dentist_token }}"
+      }
+    },
+    {
+      "_id": "req_bff_appt_create",
+      "_type": "request",
+      "parentId": "fld_bff_appointments",
+      "name": "POST /api/appointments (dentist | pacient — Private)",
+      "method": "POST",
+      "url": "{{ bff_url }}/api/appointments",
+      "description": "Use {{ pacient_token }} para solicitar como paciente, ou {{ dentist_token }} para solicitar em nome de um paciente (preencha patientId).",
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ pacient_token }}"
+      },
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"serviceId\": \"{{ service_id }}\",\n  \"startAt\": \"2026-11-02T09:00:00-03:00\",\n  \"type\": \"Private\"\n}"
+      }
+    },
+    {
+      "_id": "req_bff_appt_create_ins",
+      "_type": "request",
+      "parentId": "fld_bff_appointments",
+      "name": "POST /api/appointments (Insurance)",
+      "method": "POST",
+      "url": "{{ bff_url }}/api/appointments",
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ pacient_token }}"
+      },
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"serviceId\": \"{{ service_id }}\",\n  \"startAt\": \"2026-11-02T10:00:00-03:00\",\n  \"type\": \"Insurance\",\n  \"insuranceName\": \"Uniodonto\",\n  \"insuranceCardNumber\": \"1234567890\"\n}"
+      }
+    },
+    {
+      "_id": "req_bff_appt_confirm",
+      "_type": "request",
+      "parentId": "fld_bff_appointments",
+      "name": "POST /api/appointments/:id/confirm (dentist)",
+      "method": "POST",
+      "url": "{{ bff_url }}/api/appointments/{{ appointment_id }}/confirm",
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ dentist_token }}"
+      }
+    },
+    {
+      "_id": "req_bff_appt_reject",
+      "_type": "request",
+      "parentId": "fld_bff_appointments",
+      "name": "POST /api/appointments/:id/reject (dentist)",
+      "method": "POST",
+      "url": "{{ bff_url }}/api/appointments/{{ appointment_id }}/reject",
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ dentist_token }}"
+      }
+    },
+    {
+      "_id": "req_bff_appt_cancel",
+      "_type": "request",
+      "parentId": "fld_bff_appointments",
+      "name": "POST /api/appointments/:id/cancel (dentist | pacient)",
+      "method": "POST",
+      "url": "{{ bff_url }}/api/appointments/{{ appointment_id }}/cancel",
+      "description": "Use {{ pacient_token }} para cancelar como paciente (exige 24h de antecedência em consulta confirmada).",
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ dentist_token }}"
+      }
+    },
+    {
+      "_id": "fld_dentist",
+      "_type": "request_group",
+      "parentId": "wrk_odontologia",
+      "name": "Dentist-service (.NET) — header X-Dentist-Id"
+    },
+    {
+      "_id": "fld_dentist_services",
+      "_type": "request_group",
+      "parentId": "fld_dentist",
+      "name": "Dentist Services"
+    },
+    {
+      "_id": "req_dentist_ds_list",
+      "_type": "request",
+      "parentId": "fld_dentist_services",
+      "name": "GET /api/dentist-services",
+      "method": "GET",
+      "url": "{{ dentist_url }}/api/dentist-services",
+      "headers": [
+        {
+          "name": "X-Dentist-Id",
+          "value": "{{ dentist_id }}"
+        }
+      ]
+    },
+    {
+      "_id": "req_dentist_ds_get",
+      "_type": "request",
+      "parentId": "fld_dentist_services",
+      "name": "GET /api/dentist-services/:id",
+      "method": "GET",
+      "url": "{{ dentist_url }}/api/dentist-services/{{ service_id }}",
+      "headers": [
+        {
+          "name": "X-Dentist-Id",
+          "value": "{{ dentist_id }}"
+        }
+      ]
+    },
+    {
+      "_id": "req_dentist_ds_create",
+      "_type": "request",
+      "parentId": "fld_dentist_services",
+      "name": "POST /api/dentist-services",
+      "method": "POST",
+      "url": "{{ dentist_url }}/api/dentist-services",
+      "headers": [
+        {
+          "name": "X-Dentist-Id",
+          "value": "{{ dentist_id }}"
+        },
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"name\": \"Limpeza completa\",\n  \"dentistId\": \"{{ dentist_id }}\",\n  \"price\": 15000,\n  \"isPeriodic\": false,\n  \"status\": \"disponivel\",\n  \"durationMinutes\": 30\n}"
+      }
+    },
+    {
+      "_id": "req_dentist_ds_update",
+      "_type": "request",
+      "parentId": "fld_dentist_services",
+      "name": "PUT /api/dentist-services/:id",
+      "method": "PUT",
+      "url": "{{ dentist_url }}/api/dentist-services/{{ service_id }}",
+      "headers": [
+        {
+          "name": "X-Dentist-Id",
+          "value": "{{ dentist_id }}"
+        },
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"name\": \"Limpeza completa Plus\",\n  \"price\": 20000,\n  \"isPeriodic\": true,\n  \"status\": \"disponivel\",\n  \"durationMinutes\": 45\n}"
+      }
+    },
+    {
+      "_id": "req_dentist_ds_delete",
+      "_type": "request",
+      "parentId": "fld_dentist_services",
+      "name": "DELETE /api/dentist-services/:id",
+      "method": "DELETE",
+      "url": "{{ dentist_url }}/api/dentist-services/{{ service_id }}",
+      "headers": [
+        {
+          "name": "X-Dentist-Id",
+          "value": "{{ dentist_id }}"
+        }
+      ]
+    },
+    {
+      "_id": "req_dentist_avail",
+      "_type": "request",
+      "parentId": "fld_dentist",
+      "name": "GET /api/availability",
+      "method": "GET",
+      "url": "{{ dentist_url }}/api/availability?dentistId={{ dentist_id }}&serviceId={{ service_id }}",
+      "headers": [
+        {
+          "name": "X-Dentist-Id",
+          "value": "{{ dentist_id }}"
+        }
+      ]
+    },
+    {
+      "_id": "req_dentist_weekly_put",
+      "_type": "request",
+      "parentId": "fld_dentist",
+      "name": "PUT /api/dentist-schedule/weekly",
+      "method": "PUT",
+      "url": "{{ dentist_url }}/api/dentist-schedule/weekly",
+      "headers": [
+        {
+          "name": "X-Dentist-Id",
+          "value": "{{ dentist_id }}"
+        },
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "[\n  {\n    \"dayOfWeek\": 1,\n    \"startTime\": \"08:00:00\",\n    \"endTime\": \"17:00:00\"\n  },\n  {\n    \"dayOfWeek\": 2,\n    \"startTime\": \"08:00:00\",\n    \"endTime\": \"17:00:00\"\n  },\n  {\n    \"dayOfWeek\": 3,\n    \"startTime\": \"08:00:00\",\n    \"endTime\": \"17:00:00\"\n  },\n  {\n    \"dayOfWeek\": 4,\n    \"startTime\": \"08:00:00\",\n    \"endTime\": \"17:00:00\"\n  },\n  {\n    \"dayOfWeek\": 5,\n    \"startTime\": \"08:00:00\",\n    \"endTime\": \"12:00:00\"\n  }\n]"
+      }
+    },
+    {
+      "_id": "req_dentist_weekly_get",
+      "_type": "request",
+      "parentId": "fld_dentist",
+      "name": "GET /api/dentist-schedule/weekly",
+      "method": "GET",
+      "url": "{{ dentist_url }}/api/dentist-schedule/weekly",
+      "headers": [
+        {
+          "name": "X-Dentist-Id",
+          "value": "{{ dentist_id }}"
+        }
+      ]
+    },
+    {
+      "_id": "req_dentist_exc_put",
+      "_type": "request",
+      "parentId": "fld_dentist",
+      "name": "PUT /api/dentist-schedule/exceptions",
+      "method": "PUT",
+      "url": "{{ dentist_url }}/api/dentist-schedule/exceptions",
+      "headers": [
+        {
+          "name": "X-Dentist-Id",
+          "value": "{{ dentist_id }}"
+        },
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"date\": \"2026-11-05\",\n  \"isClosed\": false,\n  \"startTime\": \"09:00:00\",\n  \"endTime\": \"12:00:00\"\n}"
+      }
+    },
+    {
+      "_id": "req_dentist_exc_get",
+      "_type": "request",
+      "parentId": "fld_dentist",
+      "name": "GET /api/dentist-schedule/exceptions",
+      "method": "GET",
+      "url": "{{ dentist_url }}/api/dentist-schedule/exceptions",
+      "headers": [
+        {
+          "name": "X-Dentist-Id",
+          "value": "{{ dentist_id }}"
+        }
+      ]
+    },
+    {
+      "_id": "req_dentist_appt_create",
+      "_type": "request",
+      "parentId": "fld_dentist",
+      "name": "POST /api/appointments (X-Patient-Id)",
+      "method": "POST",
+      "url": "{{ dentist_url }}/api/appointments",
+      "headers": [
+        {
+          "name": "X-Patient-Id",
+          "value": "{{ patient_id }}"
+        },
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"serviceId\": \"{{ service_id }}\",\n  \"startAt\": \"2026-11-02T09:00:00-03:00\",\n  \"type\": \"Private\"\n}"
+      }
+    },
+    {
+      "_id": "req_dentist_appt_list",
+      "_type": "request",
+      "parentId": "fld_dentist",
+      "name": "GET /api/appointments",
+      "method": "GET",
+      "url": "{{ dentist_url }}/api/appointments",
+      "headers": [
+        {
+          "name": "X-Dentist-Id",
+          "value": "{{ dentist_id }}"
+        }
+      ]
+    },
+    {
+      "_id": "req_dentist_appt_confirm",
+      "_type": "request",
+      "parentId": "fld_dentist",
+      "name": "POST /api/appointments/:id/confirm",
+      "method": "POST",
+      "url": "{{ dentist_url }}/api/appointments/{{ appointment_id }}/confirm",
+      "headers": [
+        {
+          "name": "X-Dentist-Id",
+          "value": "{{ dentist_id }}"
+        }
+      ]
+    },
+    {
+      "_id": "req_dentist_appt_reject",
+      "_type": "request",
+      "parentId": "fld_dentist",
+      "name": "POST /api/appointments/:id/reject",
+      "method": "POST",
+      "url": "{{ dentist_url }}/api/appointments/{{ appointment_id }}/reject",
+      "headers": [
+        {
+          "name": "X-Dentist-Id",
+          "value": "{{ dentist_id }}"
+        }
+      ]
+    },
+    {
+      "_id": "req_dentist_appt_cancel",
+      "_type": "request",
+      "parentId": "fld_dentist",
+      "name": "POST /api/appointments/:id/cancel",
+      "method": "POST",
+      "url": "{{ dentist_url }}/api/appointments/{{ appointment_id }}/cancel",
+      "headers": [
+        {
+          "name": "X-Dentist-Id",
+          "value": "{{ dentist_id }}"
+        }
+      ]
+    },
+    {
+      "_id": "fld_employee",
+      "_type": "request_group",
+      "parentId": "wrk_odontologia",
+      "name": "Employee-service (.NET)"
+    },
+    {
+      "_id": "req_emp_list",
+      "_type": "request",
+      "parentId": "fld_employee",
+      "name": "GET /api/employees",
+      "method": "GET",
+      "url": "{{ employee_url }}/api/employees"
+    },
+    {
+      "_id": "req_emp_get",
+      "_type": "request",
+      "parentId": "fld_employee",
+      "name": "GET /api/employees/:id",
+      "method": "GET",
+      "url": "{{ employee_url }}/api/employees/{{ employee_id }}"
+    },
+    {
+      "_id": "req_emp_create",
+      "_type": "request",
+      "parentId": "fld_employee",
+      "name": "POST /api/employees",
+      "method": "POST",
+      "url": "{{ employee_url }}/api/employees",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"name\": \"Maria Souza\",\n  \"cpf\": \"123.456.789-01\",\n  \"email\": \"maria.souza@clinica.com\",\n  \"phone\": \"(43) 99999-8888\",\n  \"role\": \"recepcionista\",\n  \"status\": \"ativo\"\n}"
+      }
+    },
+    {
+      "_id": "req_emp_update",
+      "_type": "request",
+      "parentId": "fld_employee",
+      "name": "PUT /api/employees/:id (CPF imutável)",
+      "method": "PUT",
+      "url": "{{ employee_url }}/api/employees/{{ employee_id }}",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"name\": \"Maria Souza Lima\",\n  \"email\": \"maria.lima@clinica.com\",\n  \"phone\": \"43999998888\",\n  \"role\": \"administrativo\",\n  \"status\": \"ferias\"\n}"
+      }
+    },
+    {
+      "_id": "req_emp_delete",
+      "_type": "request",
+      "parentId": "fld_employee",
+      "name": "DELETE /api/employees/:id",
+      "method": "DELETE",
+      "url": "{{ employee_url }}/api/employees/{{ employee_id }}"
+    },
+    {
+      "_id": "fld_payment",
+      "_type": "request_group",
+      "parentId": "wrk_odontologia",
+      "name": "PaymentService (.NET)"
+    },
+    {
+      "_id": "req_pay_list",
+      "_type": "request",
+      "parentId": "fld_payment",
+      "name": "GET /api/payments",
+      "method": "GET",
+      "url": "{{ payment_url }}/api/payments"
+    },
+    {
+      "_id": "req_pay_get",
+      "_type": "request",
+      "parentId": "fld_payment",
+      "name": "GET /api/payments/:id",
+      "method": "GET",
+      "url": "{{ payment_url }}/api/payments/{{ payment_id }}"
+    },
+    {
+      "_id": "req_pay_create",
+      "_type": "request",
+      "parentId": "fld_payment",
+      "name": "POST /api/payments",
+      "method": "POST",
+      "url": "{{ payment_url }}/api/payments",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"appointmentId\": \"{{ appointment_id }}\",\n  \"amount\": 150\n}"
+      }
+    },
+    {
+      "_id": "req_pay_status",
+      "_type": "request",
+      "parentId": "fld_payment",
+      "name": "PATCH /api/payments/:id/status",
+      "method": "PATCH",
+      "url": "{{ payment_url }}/api/payments/{{ payment_id }}/status",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"status\": \"Paid\"\n}"
+      }
+    }
+  ]
+}
