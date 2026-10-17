@@ -111,7 +111,7 @@ describe('extractRoles', () => {
   it('extrai vários papéis válidos', () => {
     // Arrange
     const claims = {
-      realm_access: { roles: ['employ', 'dentist', 'pacient'] },
+      realm_access: { roles: ['employ', 'dentist', 'patient'] },
     };
 
     // Act
@@ -121,7 +121,7 @@ describe('extractRoles', () => {
     });
 
     // Assert
-    expect(resultado).toEqual([Role.Employ, Role.Dentist, Role.Pacient]);
+    expect(resultado).toEqual([Role.Employ, Role.Dentist, Role.Patient]);
   });
 
   it('não reconhece papel com maiúscula diferente do valor exato', () => {

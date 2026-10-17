@@ -23,15 +23,15 @@ describe('Role', () => {
     expect(resultado).toBe('dentist');
   });
 
-  it('expõe o valor exato para Pacient', () => {
+  it('expõe o valor exato para Patient', () => {
     // Arrange
-    const valor = Role.Pacient;
+    const valor = Role.Patient;
 
     // Act
     const resultado = valor as string;
 
     // Assert
-    expect(resultado).toBe('pacient');
+    expect(resultado).toBe('patient');
   });
 
   it('contém exatamente os três papéis esperados', () => {
@@ -42,6 +42,6 @@ describe('Role', () => {
     const ordenados = [...valores].sort();
 
     // Assert
-    expect(ordenados).toEqual(['dentist', 'employ', 'pacient']);
+    expect(ordenados).toEqual(['dentist', 'employ', 'patient']);
   });
 });

@@ -10,7 +10,7 @@
     "realm": [
       { "name": "dentist", "description": "Dentista dono de serviços" },
       { "name": "employ", "description": "Funcionário da clínica (gestão de funcionários)" },
-      { "name": "pacient", "description": "Paciente que solicita agendamentos" }
+      { "name": "patient", "description": "Paciente que solicita agendamentos" }
     ]
   },
   "clients": [
@@ -92,7 +92,7 @@
       "credentials": [
         { "type": "password", "value": "123456", "temporary": false }
       ],
-      "realmRoles": ["pacient"]
+      "realmRoles": ["patient"]
     }
   ]
 }

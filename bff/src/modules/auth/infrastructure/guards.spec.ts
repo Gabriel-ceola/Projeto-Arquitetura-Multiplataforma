@@ -106,7 +106,7 @@ describe('RolesGuard', () => {
   }
 
   class OuController {
-    @Roles(Role.Dentist, Role.Pacient)
+    @Roles(Role.Dentist, Role.Patient)
     handler() {
       return 'ok';
     }
@@ -114,7 +114,7 @@ describe('RolesGuard', () => {
 
   @Roles(Role.Dentist)
   class ClasseComOverride {
-    @Roles(Role.Pacient)
+    @Roles(Role.Patient)
     handler() {
       return 'ok';
     }
@@ -148,7 +148,7 @@ describe('RolesGuard', () => {
   it('role errada lança InsufficientRoleError (403)', () => {
     const target = new DentistaController();
     const ctx = fakeContext(target.handler, DentistaController, {
-      user: { id: 'u', roles: [Role.Pacient] },
+      user: { id: 'u', roles: [Role.Patient] },
     });
 
     let err: unknown;
@@ -164,7 +164,7 @@ describe('RolesGuard', () => {
   it('@Roles(a, b) com usuário só com b permite (OU)', () => {
     const target = new OuController();
     const ctx = fakeContext(target.handler, OuController, {
-      user: { id: 'u', roles: [Role.Pacient] },
+      user: { id: 'u', roles: [Role.Patient] },
     });
 
     expect(guard.canActivate(ctx)).toBe(true);
@@ -172,14 +172,14 @@ describe('RolesGuard', () => {
 
   it('metadata de método sobrepõe a de classe', () => {
     const target = new ClasseComOverride();
-    const ctxPacient = fakeContext(target.handler, ClasseComOverride, {
-      user: { id: 'u', roles: [Role.Pacient] },
+    const ctxPatient = fakeContext(target.handler, ClasseComOverride, {
+      user: { id: 'u', roles: [Role.Patient] },
     });
     const ctxDentista = fakeContext(target.handler, ClasseComOverride, {
       user: { id: 'u', roles: [Role.Dentist] },
     });
 
-    expect(guard.canActivate(ctxPacient)).toBe(true);
+    expect(guard.canActivate(ctxPatient)).toBe(true);
     expect(() => guard.canActivate(ctxDentista)).toThrow(InsufficientRoleError);
   });
 
