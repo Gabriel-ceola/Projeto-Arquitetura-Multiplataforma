@@ -1,0 +1,51 @@
+@PaymentService_HostAddress = http://localhost:5127
+@paymentId = 00000000-0000-0000-0000-000000000000
+@appointmentId = 11111111-1111-1111-1111-111111111111
+
+### Listar pagamentos
+GET {{PaymentService_HostAddress}}/api/payments
+Accept: application/json
+
+###
+
+### Criar pagamento
+POST {{PaymentService_HostAddress}}/api/payments
+Content-Type: application/json
+
+{
+  "appointmentId": "{{appointmentId}}",
+  "amount": 150.00
+}
+
+###
+
+### Consultar pagamento
+GET {{PaymentService_HostAddress}}/api/payments/{{paymentId}}
+Accept: application/json
+
+###
+
+### Atualizar status
+PATCH {{PaymentService_HostAddress}}/api/payments/{{paymentId}}/status
+Content-Type: application/json
+
+{
+  "status": "Paid"
+}
+
+###
+
+### Consultar pagamento inexistente
+GET {{PaymentService_HostAddress}}/api/payments/00000000-0000-0000-0000-000000000000
+Accept: application/json
+
+###
+
+### Criar pagamento inválido
+POST {{PaymentService_HostAddress}}/api/payments
+Content-Type: application/json
+
+{
+  "appointmentId": "00000000-0000-0000-0000-000000000000",
+  "amount": 0
+}
