@@ -63,7 +63,11 @@ export class MetricsService {
     status: number,
     durationSeconds: number,
   ): void {
-    const labels = { method, route: normalizeRoute(route), status: `${status}` };
+    const labels = {
+      method,
+      route: normalizeRoute(route),
+      status: `${status}`,
+    };
     this.httpRequests.inc(labels);
     this.httpDuration.observe(labels, durationSeconds);
   }

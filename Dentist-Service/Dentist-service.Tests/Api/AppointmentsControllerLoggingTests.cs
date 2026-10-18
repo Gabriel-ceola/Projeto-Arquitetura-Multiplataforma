@@ -1,4 +1,5 @@
 using Dentist_service.DentistsServices.Api.Controllers;
+using Dentist_service.DentistsServices.Api.Telemetry;
 using Dentist_service.DentistsServices.Domain;
 using Dentist_service.DentistsServices.Domain.Ports;
 using Dentist_service.DentistsServices.Infrastructure.Data;
@@ -37,7 +38,7 @@ public class AppointmentsControllerLoggingTests : IDisposable
             _db.WeeklyHours.Add(new DentistWeeklyHours(DentistServicesFactory.DefaultDentistId, day, new TimeOnly(8, 0), new TimeOnly(18, 0)));
         _db.SaveChanges();
 
-        _controller = new AppointmentsController(_db, _events.Object, _logger)
+        _controller = new AppointmentsController(_db, _events.Object, new AppointmentMetrics(), _logger)
         {
             ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() }
         };

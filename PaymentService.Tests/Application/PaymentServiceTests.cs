@@ -5,6 +5,7 @@ using Moq;
 using PaymentService.Application.DTOs;
 using PaymentService.Domain;
 using PaymentService.Domain.Ports;
+using PaymentService.Infrastructure.Telemetry;
 using PaymentServiceImpl = PaymentService.Application.Services.PaymentService;
 
 namespace PaymentService.Tests.Application;
@@ -18,7 +19,7 @@ public class PaymentServiceTests
 
     public PaymentServiceTests()
     {
-        _service = new PaymentServiceImpl(_repository.Object, _publisher.Object, _logger);
+        _service = new PaymentServiceImpl(_repository.Object, _publisher.Object, new PaymentMetrics(), _logger);
     }
 
     [Fact]
