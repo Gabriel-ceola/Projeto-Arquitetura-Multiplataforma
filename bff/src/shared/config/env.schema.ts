@@ -34,6 +34,12 @@ export const envSchema = z.object({
   // Rate limit
   THROTTLE_TTL_SECONDS: z.coerce.number().default(60),
   THROTTLE_LIMIT: z.coerce.number().default(100),
+
+  // Logs: pasta raiz dos logs JSON (ELK). Vazio = apenas stdout.
+  LOG_DIR: z
+    .string()
+    .optional()
+    .transform((v) => (v && v.trim() !== '' ? v.trim() : undefined)),
 });
 
 export type AppEnv = z.infer<typeof envSchema>;

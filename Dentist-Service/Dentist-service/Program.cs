@@ -6,8 +6,11 @@ using Dentist_service.DentistsServices.Infrastructure.Events;
 using Dentist_service.DentistsServices.Infrastructure.Repositories;
 using Messaging;
 using Microsoft.EntityFrameworkCore;
+using Observability;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.AddOdontoLogging();
 
 // ──────────────────────────────────────────────
 // Infraestrutura: EF Core + PostgreSQL
@@ -54,6 +57,8 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+app.UseOdontoObservability();
 
 app.MapControllers();
 

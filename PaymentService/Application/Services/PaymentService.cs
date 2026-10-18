@@ -1,4 +1,5 @@
 using PaymentService.Application.DTOs;
+using PaymentService.Application.Logging;
 using PaymentService.Domain;
 using PaymentService.Domain.Ports;
 
@@ -6,14 +7,21 @@ namespace PaymentService.Application.Services;
 
 public sealed class PaymentService(
     IPaymentRepository repository,
-    IPaymentEventPublisher eventPublisher) : IPaymentService
+    IPaymentEventPublisher eventPublisher,
+    ILogger<PaymentService> logger) : IPaymentService
 {
     public async Task<PaymentResponse?> GetByIdAsync(
         Guid id,
         CancellationToken cancellationToken = default)
     {
         var payment = await repository.GetByIdAsync(id, cancellationToken);
-        return payment is null ? null : ToResponse(payment);
+        if (payment is null)
+        {
+            logger.PaymentNotFound(id);
+            return null;
+        }
+
+        return ToResponse(payment);
     }
 
     public async Task<IReadOnlyList<PaymentResponse>> GetAllAsync(
@@ -37,6 +45,7 @@ public sealed class PaymentService(
         var payment = new Payment(Guid.NewGuid(), request.AppointmentId, request.Amount, now);
         await repository.AddAsync(payment, cancellationToken);
         await eventPublisher.PublishAsync(payment, cancellationToken);
+        logger.PaymentCreated(payment.Id, payment.AppointmentId, payment.Amount);
         return ToResponse(payment);
     }
 
@@ -50,11 +59,16 @@ public sealed class PaymentService(
 
         var payment = await repository.GetByIdAsync(id, cancellationToken);
         if (payment is null)
+        {
+            logger.PaymentNotFound(id);
             return null;
+        }
 
+        var previousStatus = payment.Status;
         payment.UpdateStatus(request.Status.Value, DateTimeOffset.UtcNow);
         await repository.UpdateAsync(payment, cancellationToken);
         await eventPublisher.PublishAsync(payment, cancellationToken);
+        logger.PaymentStatusChanged(payment.Id, payment.AppointmentId, previousStatus, payment.Status);
         return ToResponse(payment);
     }
 

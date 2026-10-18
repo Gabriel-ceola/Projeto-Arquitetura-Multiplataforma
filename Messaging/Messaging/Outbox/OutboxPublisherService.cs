@@ -1,3 +1,5 @@
+using System.Text.Json;
+using Messaging.Contracts;
 using Messaging.Kafka;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -42,7 +44,7 @@ public sealed class OutboxPublisherService<TDbContext> : BackgroundService where
             }
             catch (Exception exception)
             {
-                _logger.LogError(exception, "Falha ao ler o outbox de {Context}.", typeof(TDbContext).Name);
+                _logger.OutboxReadFailed(exception, typeof(TDbContext).Name);
             }
 
             try
@@ -71,6 +73,12 @@ public sealed class OutboxPublisherService<TDbContext> : BackgroundService where
         var published = 0;
         foreach (var message in pending)
         {
+            // Escopo com o correlationId original do evento, para ligar a publicação à requisição de origem.
+            using var correlationScope = _logger.BeginScope(new Dictionary<string, object>
+            {
+                ["CorrelationId"] = ReadCorrelationId(message.Payload) ?? message.Id.ToString()
+            });
+
             try
             {
                 await _producer.ProduceAsync(message.Topic, message.Key, message.Payload, cancellationToken: cancellationToken);
@@ -79,16 +87,30 @@ public sealed class OutboxPublisherService<TDbContext> : BackgroundService where
             {
                 message.RegisterFailure(exception.Message);
                 await context.SaveChangesAsync(cancellationToken);
-                _logger.LogWarning(exception, "Falha ao publicar o evento {EventId} ({EventType}) no tópico {Topic}.",
-                    message.Id, message.EventType, message.Topic);
+                _logger.OutboxPublishFailed(exception, message.EventType, message.Id, message.Topic, message.Attempts);
                 break;
             }
 
-            message.MarkAsProcessed(DateTime.UtcNow);
+            var processedAtUtc = DateTime.UtcNow;
+            message.MarkAsProcessed(processedAtUtc);
             await context.SaveChangesAsync(cancellationToken);
             published++;
+            _logger.OutboxPublished(message.EventType, message.Id, message.Topic, message.Key,
+                (long)(processedAtUtc - message.OccurredAtUtc).TotalMilliseconds);
         }
 
         return published;
+    }
+
+    private static string? ReadCorrelationId(string payload)
+    {
+        try
+        {
+            return EventEnvelope.FromJson(payload)?.CorrelationId;
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
     }
 }

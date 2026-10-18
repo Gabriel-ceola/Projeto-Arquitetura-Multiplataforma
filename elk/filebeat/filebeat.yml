@@ -1,0 +1,55 @@
+# Filebeat: lê os logs JSON (um objeto por linha) gravados pelos serviços no host
+# e envia ao Logstash. Os arquivos são montados em /var/log/odonto/<servico>/.
+filebeat.inputs:
+  - type: filestream
+    id: bff-logs
+    paths:
+      - /var/log/odonto/bff/*.log
+    parsers:
+      - ndjson:
+          target: ""
+          overwrite_keys: true
+          add_error_key: true
+    fields:
+      service_hint: bff
+    fields_under_root: true
+    # Bind mount no Windows/WSL não gera eventos de inotify: varre por polling.
+    prospector.scanner.check_interval: 5s
+
+  - type: filestream
+    id: dentist-service-logs
+    paths:
+      - /var/log/odonto/dentist-service/*.json
+    parsers:
+      - ndjson:
+          target: ""
+          overwrite_keys: true
+          add_error_key: true
+    fields:
+      service_hint: dentist-service
+    fields_under_root: true
+    prospector.scanner.check_interval: 5s
+
+  - type: filestream
+    id: payment-service-logs
+    paths:
+      - /var/log/odonto/payment-service/*.json
+    parsers:
+      - ndjson:
+          target: ""
+          overwrite_keys: true
+          add_error_key: true
+    fields:
+      service_hint: payment-service
+    fields_under_root: true
+    prospector.scanner.check_interval: 5s
+
+# O template/ILM são gerenciados pelo es-setup; Filebeat só envia ao Logstash.
+setup.template.enabled: false
+setup.ilm.enabled: false
+
+output.logstash:
+  hosts: ["logstash:5044"]
+
+logging.level: info
+logging.to_stderr: true

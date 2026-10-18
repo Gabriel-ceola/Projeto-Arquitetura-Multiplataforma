@@ -1,3 +1,4 @@
+import { Logger } from '@nestjs/common';
 import {
   DownstreamUnavailableError,
   DownstreamTimeoutError,
@@ -5,6 +6,10 @@ import {
 } from '@shared/domain/common-errors';
 import { HEADERS } from '@shared/infrastructure/constants/headers';
 import { DomainError } from '@shared/domain/domain-error';
+import {
+  LOG_EVENTS,
+  pathWithoutQuery,
+} from '@shared/infrastructure/logging/log-events';
 import { correlationIdStorage } from './correlation-id.storage';
 
 export class DownstreamHttpStatusError extends Error {
@@ -33,6 +38,8 @@ export interface RequestOptions {
 }
 
 export class DownstreamHttpClient {
+  private readonly logger = new Logger(DownstreamHttpClient.name);
+
   constructor(
     private readonly baseUrl: string,
     private readonly timeoutMs: number,
@@ -58,6 +65,7 @@ export class DownstreamHttpClient {
     }
 
     let response: Response;
+    const startedAt = performance.now();
     try {
       response = await fetch(url, {
         method,
@@ -68,8 +76,15 @@ export class DownstreamHttpClient {
     } catch (err) {
       const error = err as Error;
       if (error.name === 'AbortError' || error.name === 'TimeoutError') {
+        this.logFailure(LOG_EVENTS.DOWNSTREAM_TIMEOUT, options, startedAt, {
+          message: `Timeout de ${this.timeoutMs}ms ao chamar o serviço downstream`,
+        });
         throw new DownstreamTimeoutError();
       }
+      this.logFailure(LOG_EVENTS.DOWNSTREAM_UNAVAILABLE, options, startedAt, {
+        message: 'Falha de conexão com o serviço downstream',
+        errorType: error.name,
+      });
       throw new DownstreamUnavailableError();
     }
 
@@ -82,6 +97,10 @@ export class DownstreamHttpClient {
       responseBody = await response.json();
     } catch {
       if (response.ok) {
+        this.logFailure(LOG_EVENTS.DOWNSTREAM_ERROR, options, startedAt, {
+          message: 'Resposta inválida do serviço downstream',
+          statusCode: response.status,
+        });
         throw new DownstreamUnavailableError(
           'Resposta inválida do serviço downstream.',
         );
@@ -111,9 +130,41 @@ export class DownstreamHttpClient {
     }
 
     if (!response.ok) {
+      this.logFailure(LOG_EVENTS.DOWNSTREAM_ERROR, options, startedAt, {
+        message: 'Serviço downstream respondeu com erro',
+        statusCode: response.status,
+      });
       throw new DownstreamUnavailableError();
     }
 
     return responseBody as T;
+  }
+
+  private logFailure(
+    action: string,
+    options: RequestOptions,
+    startedAt: number,
+    details: { message: string; statusCode?: number; errorType?: string },
+  ): void {
+    const { host } = new URL(this.baseUrl);
+    const elapsedNanoseconds = Math.round(
+      (performance.now() - startedAt) * 1_000_000,
+    );
+
+    this.logger.warn(
+      {
+        event: { action, duration: elapsedNanoseconds },
+        destination: { address: host },
+        http: {
+          request: { method: options.method },
+          ...(details.statusCode
+            ? { response: { status_code: details.statusCode } }
+            : {}),
+        },
+        url: { path: pathWithoutQuery(options.path) },
+        ...(details.errorType ? { error: { type: details.errorType } } : {}),
+      },
+      details.message,
+    );
   }
 }

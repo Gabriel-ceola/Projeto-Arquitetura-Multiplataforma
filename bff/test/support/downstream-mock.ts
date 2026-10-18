@@ -175,7 +175,10 @@ export async function createDownstreamMock(opts: DownstreamMockOptions = {}) {
           ...item,
           name: b['name'] !== undefined ? String(b['name']) : item.name,
           price: b['price'] !== undefined ? Number(b['price']) : item.price,
-          durationMinutes: b['durationMinutes'] !== undefined ? Number(b['durationMinutes']) : item.durationMinutes,
+          durationMinutes:
+            b['durationMinutes'] !== undefined
+              ? Number(b['durationMinutes'])
+              : item.durationMinutes,
           isPeriodic:
             b['isPeriodic'] !== undefined
               ? Boolean(b['isPeriodic'])

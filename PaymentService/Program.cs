@@ -1,5 +1,6 @@
 using System.Text.Json.Serialization;
 using Microsoft.EntityFrameworkCore;
+using Observability;
 using PaymentService.Application.Services;
 using PaymentService.Domain.Ports;
 using PaymentService.Infrastructure.Data;
@@ -7,6 +8,8 @@ using PaymentService.Infrastructure.Messaging;
 using PaymentService.Infrastructure.Repositories;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.AddOdontoLogging();
 
 builder.Services.AddDbContext<PaymentDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
@@ -39,6 +42,8 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+app.UseOdontoObservability();
 
 app.UseAuthorization();
 

@@ -8,6 +8,10 @@ import {
 } from '@nestjs/common';
 import type { Request, Response } from 'express';
 import { DomainError } from '@shared/domain/domain-error';
+import {
+  LOG_EVENTS,
+  pathWithoutQuery,
+} from '@shared/infrastructure/logging/log-events';
 import { ErrorResponseDto } from './error-response.dto';
 
 export const DOMAIN_ERROR_HTTP_STATUS: Record<string, number> = {
@@ -40,19 +44,18 @@ export class DomainExceptionFilter implements ExceptionFilter {
         HttpStatus.INTERNAL_SERVER_ERROR;
       message = exception.message;
 
-      if (status >= 500) {
+      if (!(exception.code in DOMAIN_ERROR_HTTP_STATUS)) {
+        // Erros downstream mapeados (502/504) já são logados pelo DownstreamHttpClient.
         this.logger.error(
           { err: exception, path: request.url },
           'DomainError não mapeado',
         );
-      } else if (status === 401 || status === 403) {
-        this.logger.warn(
-          { code: exception.code, path: request.url },
-          'Acesso negado',
-        );
+      } else {
+        this.logSecurityEvent(status, request, exception.code);
       }
     } else if (exception instanceof HttpException) {
       status = exception.getStatus();
+      this.logSecurityEvent(status, request);
       const exceptionResponse = exception.getResponse();
 
       if (typeof exceptionResponse === 'string') {
@@ -84,5 +87,31 @@ export class DomainExceptionFilter implements ExceptionFilter {
 
     const body: ErrorResponseDto = { message };
     response.status(status).json(body);
+  }
+
+  private logSecurityEvent(
+    status: number,
+    request: Request,
+    errorCode?: string,
+  ): void {
+    const isRateLimited = status === 429;
+    if (!isRateLimited && status !== 401 && status !== 403) {
+      return;
+    }
+
+    this.logger.warn(
+      {
+        event: {
+          action: isRateLimited
+            ? LOG_EVENTS.RATE_LIMITED
+            : LOG_EVENTS.AUTH_DENIED,
+        },
+        http: { response: { status_code: status } },
+        url: { path: pathWithoutQuery(request.url) },
+        ...(errorCode ? { error: { code: errorCode } } : {}),
+        ...(isRateLimited ? { client: { ip: request.ip } } : {}),
+      },
+      isRateLimited ? 'Limite de requisições excedido' : 'Acesso negado',
+    );
   }
 }
