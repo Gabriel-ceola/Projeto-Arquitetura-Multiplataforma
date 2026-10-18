@@ -52,6 +52,8 @@ todas as aplicações.
 | Messaging | Biblioteca .NET (Kafka + outbox) | `Messaging/` |
 | Kafka | Apache Kafka 4.3.1 (KRaft) + Kafka UI | `kafka/` |
 | Keycloak | Keycloak 26 + PostgreSQL | `keycloak/` |
+| ELK | Elasticsearch + Logstash + Kibana + Filebeat 8.17 (logs) | `elk/` |
+| Observability | Biblioteca .NET (logs JSON ECS + correlation id) | `Observability/` |
 | Observabilidade | Prometheus + Grafana + kafka-exporter | `observability/` |
 
 ---
@@ -79,6 +81,8 @@ todas as aplicações.
 | PaymentService | **5127** | HTTPS `7094`; Swagger só em Development |
 | Keycloak | **8080** | realm `dentist` |
 | Kafka UI | **8081** | kafbat UI |
+| Kibana | **5601** | logs (ver [`elk/README.md`](elk/README.md)) |
+| Elasticsearch | **9200** | API HTTP, sem autenticação em dev |
 | Kafka broker | **9092** | containers na rede usam `kafka:19092` |
 | Postgres Dentist | **5432** | db `dentist_service` |
 | Postgres Payment | **5433** | db `payment_service` |
@@ -97,6 +101,9 @@ Todas as senhas de desenvolvimento são `postgres` (bancos) e o Kafka é `PLAINT
 Cada pasta tem o seu próprio compose. Rode da **raiz do repositório** com `-f`:
 
 ```bash
+# 0. (Opcional) ELK: Elasticsearch + Logstash + Filebeat + Kibana (~3 GB de RAM)
+(cd elk && docker compose up -d)
+
 # 1. Kafka + Kafka UI + criação dos tópicos
 docker compose -f kafka/docker-compose.yaml up -d
 
@@ -195,7 +202,8 @@ dotnet run                               # http://localhost:5127
 ```
 
 O `Program.cs` aplica as migrations automaticamente no boot — não precisa de
-`dotnet ef database update`.
+`dotnet ef database update`. Os logs vão para `logs/payment-service/`
+(`Observability:LogDirectory` = `../logs` no `appsettings.Development.json`).
 
 ### BFF (`:3000`)
 
@@ -232,6 +240,7 @@ Lista completa de variáveis e a matriz de RBAC em [`bff/README.md`](bff/README.
 
 ```bash
 # Infraestrutura
+(cd elk && docker compose up -d)                      # opcional: logs no Kibana :5601
 docker compose -f kafka/docker-compose.yaml up -d
 docker compose -f keycloak/docker-compose.yaml up -d
 docker compose -f Dentist-Service/Dentist-service/docker-compose.yml up -d
@@ -293,6 +302,12 @@ dotnet test Employee-service/Employee-service.sln
 
 # Messaging
 dotnet test Messaging/Messaging.Tests/Messaging.Tests.csproj
+
+# Observability
+dotnet test Observability/Observability.sln
+
+# PaymentService
+dotnet test PaymentService.Tests/PaymentService.Tests.csproj
 ```
 
 Os testes do BFF usam um JWKS local (`test/support/jwt-test-kit.ts`) — não exigem
@@ -300,9 +315,22 @@ um Keycloak real.
 
 ---
 
+## Logs (ELK)
+
+BFF, Dentist-service e PaymentService gravam logs JSON (ECS) em `logs/<servico>/`; o Filebeat
+os envia ao Elasticsearch e a consulta é feita no Kibana (`http://localhost:5601`). Cada
+requisição carrega um `labels.correlation_id` que atravessa BFF, Dentist-service, outbox,
+Kafka e PaymentService.
+
+- Como subir e consultar: [`elk/README.md`](elk/README.md)
+- Campos, catálogo de eventos e política de dados pessoais: [`elk/docs/logging-standard.md`](elk/docs/logging-standard.md)
+
+---
+
 ## Parando / limpando
 
 ```bash
+(cd elk && docker compose down)                              # add -v para apagar índices e offsets
 docker compose -f kafka/docker-compose.yaml down            # add -v para apagar tópicos/dados
 docker compose -f keycloak/docker-compose.yaml down -v      # remove o banco do Keycloak (reimporta o realm no próximo up)
 docker compose -f Dentist-Service/Dentist-service/docker-compose.yml down -v

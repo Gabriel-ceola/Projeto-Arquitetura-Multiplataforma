@@ -1,4 +1,5 @@
 using PaymentService.Application.DTOs;
+using PaymentService.Application.Logging;
 using PaymentService.Domain;
 using PaymentService.Domain.Ports;
 using PaymentService.Infrastructure.Telemetry;
@@ -8,7 +9,8 @@ namespace PaymentService.Application.Services;
 public sealed class PaymentService(
     IPaymentRepository repository,
     IPaymentEventPublisher eventPublisher,
-    PaymentMetrics metrics) : IPaymentService
+    PaymentMetrics metrics,
+    ILogger<PaymentService> logger) : IPaymentService
 {
     public async Task<PaymentResponse?> GetByIdAsync(
         Guid id,
@@ -16,7 +18,13 @@ public sealed class PaymentService(
     {
         var payment = await repository.GetByIdAsync(id, cancellationToken);
         metrics.Read("get_by_id", payment is null ? PaymentMetrics.ResultNotFound : PaymentMetrics.ResultOk);
-        return payment is null ? null : ToResponse(payment);
+        if (payment is null)
+        {
+            logger.PaymentNotFound(id);
+            return null;
+        }
+
+        return ToResponse(payment);
     }
 
     public async Task<IReadOnlyList<PaymentResponse>> GetAllAsync(
@@ -49,6 +57,7 @@ public sealed class PaymentService(
         await eventPublisher.PublishAsync(payment, cancellationToken);
         metrics.CreationCreated(payment.Amount);
         metrics.RecordAmount(payment.Amount);
+        logger.PaymentCreated(payment.Id, payment.AppointmentId, payment.Amount);
         return ToResponse(payment);
     }
 
@@ -76,14 +85,20 @@ public sealed class PaymentService(
                 PaymentMetrics.ReasonNotFound,
                 "unknown",
                 requestedStatus);
+            logger.PaymentNotFound(id);
             return null;
         }
 
-        var previousStatus = payment.Status.ToString().ToLowerInvariant();
+        var previousStatus = payment.Status;
         payment.UpdateStatus(request.Status.Value, DateTimeOffset.UtcNow);
         await repository.UpdateAsync(payment, cancellationToken);
         await eventPublisher.PublishAsync(payment, cancellationToken);
-        metrics.StatusUpdate(PaymentMetrics.ResultOk, PaymentMetrics.ReasonNone, previousStatus, requestedStatus);
+        metrics.StatusUpdate(
+            PaymentMetrics.ResultOk,
+            PaymentMetrics.ReasonNone,
+            previousStatus.ToString().ToLowerInvariant(),
+            requestedStatus);
+        logger.PaymentStatusChanged(payment.Id, payment.AppointmentId, previousStatus, payment.Status);
         return ToResponse(payment);
     }
 

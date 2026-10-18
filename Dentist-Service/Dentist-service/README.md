@@ -57,6 +57,22 @@ O arquivo `appsettings.json` já está configurado para o banco acima:
 
 ---
 
+## Logs
+
+A API grava logs JSON (ECS) em `{Observability:LogDirectory}/{Observability:ServiceName}/` e no
+console, para o ELK. Em `appsettings.Development.json`:
+
+```json
+"Observability": { "ServiceName": "dentist-service", "LogDirectory": "../../logs" }
+```
+
+`../../logs` aponta para a pasta `logs/` na raiz do repositório quando a API roda a partir de
+`Dentist-service/Dentist-service`. Eventos de agendamento (`appointment.*`, `schedule.*`) e de
+mensageria (`outbox.*`, `consumer.*`) trazem `labels.correlation_id`. Ver
+[`elk/README.md`](../../elk/README.md) e [`elk/docs/logging-standard.md`](../../elk/docs/logging-standard.md).
+
+---
+
 ## Migrations
 
 Aplique as migrations para criar as tabelas:

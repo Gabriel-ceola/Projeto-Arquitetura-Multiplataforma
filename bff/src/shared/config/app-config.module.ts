@@ -51,6 +51,7 @@ export const APP_CONFIG = Symbol('APP_CONFIG');
         SWAGGER_ENABLED: cs.get('SWAGGER_ENABLED', { infer: true }),
         THROTTLE_TTL_SECONDS: cs.get('THROTTLE_TTL_SECONDS', { infer: true }),
         THROTTLE_LIMIT: cs.get('THROTTLE_LIMIT', { infer: true }),
+        LOG_DIR: cs.get('LOG_DIR', { infer: true }),
       }),
       inject: [ConfigService],
     },

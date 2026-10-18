@@ -47,6 +47,12 @@ public sealed class EventDispatcher
 
     public async Task<DispatchResult> DispatchAsync(ConsumedMessage message, CancellationToken cancellationToken = default)
     {
+        using var kafkaScope = _logger.BeginScope(new Dictionary<string, object>
+        {
+            ["KafkaTopic"] = message.Topic,
+            ["KafkaPartition"] = message.Partition,
+            ["KafkaOffset"] = message.Offset
+        });
         var startedAt = Stopwatch.GetTimestamp();
 
         var envelope = TryReadEnvelope(message, out var readError);
@@ -57,10 +63,19 @@ public sealed class EventDispatcher
             return DispatchResult.DeadLettered;
         }
 
+        // O correlationId do envelope acompanha todos os logs do handler (ex.: logs do caso de uso).
+        using var eventScope = _logger.BeginScope(new Dictionary<string, object>
+        {
+            ["CorrelationId"] = envelope.CorrelationId,
+            ["EventType"] = envelope.EventType,
+            ["MessageId"] = envelope.EventId
+        });
+
+        _logger.ConsumerReceived(envelope.EventType, envelope.EventId, message.Topic, message.Partition, message.Offset);
+
         if (!_registry.TryGet(envelope.EventType, out var registration))
         {
-            _logger.LogInformation("Evento {EventType} ({EventId}) recebido em {Topic} sem handler registrado.",
-                envelope.EventType, envelope.EventId, message.Topic);
+            _logger.ConsumerSkipped(envelope.EventType, envelope.EventId, message.Topic);
             Record(message.Topic, "skipped", startedAt);
             return DispatchResult.Skipped;
         }
@@ -83,6 +98,7 @@ public sealed class EventDispatcher
             {
                 await using var scope = _scopeFactory.CreateAsyncScope();
                 await registration.InvokeAsync(scope.ServiceProvider, envelope.Data, metadata, cancellationToken);
+                _logger.ConsumerHandled(envelope.EventType, envelope.EventId, attempt);
                 Record(message.Topic, "handled", startedAt);
                 return DispatchResult.Handled;
             }
@@ -98,16 +114,14 @@ public sealed class EventDispatcher
             }
             catch (Exception exception) when (attempt > _options.MaxRetries)
             {
-                _logger.LogError(exception, "Evento {EventType} ({EventId}) falhou após {Attempts} tentativas.",
-                    envelope.EventType, envelope.EventId, attempt);
+                _logger.ConsumerFailed(exception, envelope.EventType, envelope.EventId, attempt);
                 await DeadLetterAsync(message, exception.Message, DeadLetterHandlerFailed, cancellationToken);
                 Record(message.Topic, "deadlettered", startedAt);
                 return DispatchResult.DeadLettered;
             }
             catch (Exception exception)
             {
-                _logger.LogWarning(exception, "Tentativa {Attempt} do evento {EventType} ({EventId}) falhou.",
-                    attempt, envelope.EventType, envelope.EventId);
+                _logger.ConsumerRetry(exception, attempt, envelope.EventType, envelope.EventId);
                 _metrics.ConsumerRetry(message.Topic, envelope.EventType);
                 await Task.Delay(TimeSpan.FromMilliseconds(_options.RetryDelayMs), cancellationToken);
             }
@@ -154,7 +168,6 @@ public sealed class EventDispatcher
 
         await _producer.ProduceAsync(Topics.DeadLetterOf(message.Topic), message.Key, message.Value ?? string.Empty, headers, cancellationToken);
         _metrics.ConsumerDeadLetter(message.Topic, reason);
-        _logger.LogWarning("Mensagem {Topic}/{Partition}@{Offset} enviada para a DLQ: {Error}",
-            message.Topic, message.Partition, message.Offset, error);
+        _logger.ConsumerDeadLettered(message.Topic, message.Partition, message.Offset, error);
     }
 }

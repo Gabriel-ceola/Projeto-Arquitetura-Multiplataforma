@@ -31,6 +31,15 @@ Ver `.env.example` (todas as variáveis do 10 do spec). Obrigatórias:
 `DENTIST_SERVICE_BASE_URL`. O boot **falha** com env inválida, listando o problema.
 `EMPLOYEE_SERVICE_BASE_URL` é opcional (padrão `http://localhost:5070`, porta do Employee-service).
 
+### Logs
+
+O BFF escreve logs JSON (ECS) no stdout e, se `LOG_DIR` estiver definido, também em
+`<LOG_DIR>/bff/bff.log` para o ELK (`LOG_DIR=../logs` no host; no `docker-compose.dev.yml`
+é `/app/logs`, montado de `../logs`). Cada log traz `labels.correlation_id` (header
+`X-Correlation-Id`). Eventos: `auth.denied`, `http.rate_limited`, `downstream.timeout|unavailable|error`.
+Headers, tokens e query strings não são logados. Detalhes em
+[`../elk/docs/logging-standard.md`](../elk/docs/logging-standard.md).
+
 ## Como obter um token de teste
 
 1. No Keycloak, crie o realm/cliente `bff-clinica` com uma role de realm

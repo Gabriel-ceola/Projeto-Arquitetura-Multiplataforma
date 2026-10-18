@@ -3,6 +3,8 @@ using Messaging.Contracts;
 using Messaging.Kafka;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 
 namespace Messaging.Outbox;
@@ -14,12 +16,18 @@ public sealed class EfOutbox<TDbContext> : IOutbox where TDbContext : DbContext
     private readonly TDbContext _context;
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly string _source;
+    private readonly ILogger _logger;
 
-    public EfOutbox(TDbContext context, IHttpContextAccessor httpContextAccessor, IOptions<KafkaOptions> options)
+    public EfOutbox(
+        TDbContext context,
+        IHttpContextAccessor httpContextAccessor,
+        IOptions<KafkaOptions> options,
+        ILogger<EfOutbox<TDbContext>>? logger = null)
     {
         _context = context;
         _httpContextAccessor = httpContextAccessor;
         _source = options.Value.ClientId;
+        _logger = logger ?? NullLogger<EfOutbox<TDbContext>>.Instance;
     }
 
     public void Enqueue<TEvent>(TEvent @event, string? correlationId = null) where TEvent : IIntegrationEvent
@@ -30,6 +38,8 @@ public sealed class EfOutbox<TDbContext> : IOutbox where TDbContext : DbContext
 
         _context.Set<OutboxMessage>().Add(
             new OutboxMessage(eventId, TEvent.Topic, @event.Key, TEvent.EventType, envelope.ToJson(), occurredAtUtc));
+
+        _logger.OutboxEnqueued(TEvent.EventType, eventId, TEvent.Topic, @event.Key, envelope.CorrelationId);
     }
 
     private string ResolveCorrelationId(string? correlationId, Guid eventId)

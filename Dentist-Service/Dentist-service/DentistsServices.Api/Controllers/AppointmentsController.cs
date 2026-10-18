@@ -1,5 +1,6 @@
 using System.Data;
 using System.Globalization;
+using Dentist_service.DentistsServices.Api.Logging;
 using Dentist_service.DentistsServices.Api.Telemetry;
 using Dentist_service.DentistsServices.Domain;
 using Dentist_service.DentistsServices.Domain.Ports;
@@ -13,7 +14,7 @@ namespace Dentist_service.DentistsServices.Api.Controllers;
 [ApiController]
 [Route("api")]
 [Produces("application/json")]
-public class AppointmentsController(DentistServicesDbContext db, IAppointmentEventPublisher events, AppointmentMetrics metrics) : ControllerBase
+public class AppointmentsController(DentistServicesDbContext db, IAppointmentEventPublisher events, AppointmentMetrics metrics, ILogger<AppointmentsController> logger) : ControllerBase
 {
     private static readonly TimeZoneInfo ClinicZone = TimeZoneInfo.FindSystemTimeZoneById("America/Sao_Paulo");
     private Guid? HeaderGuid(string name) => Request.Headers.TryGetValue(name, out var value) && Guid.TryParse(value, out var id) ? id : null;
@@ -28,6 +29,7 @@ public class AppointmentsController(DentistServicesDbContext db, IAppointmentEve
         if (requestingDentistId is not null && requestingDentistId != dentistId)
         {
             metrics.Availability(AppointmentMetrics.ReasonForbidden);
+            logger.AppointmentDenied("dentist_foreign_schedule", null, requestingDentistId);
             return StatusCode(403, new { message = "Dentista só pode consultar a própria agenda." });
         }
         var service = await db.DentistServices.AsNoTracking().FirstOrDefaultAsync(x => x.Id == serviceId && x.DentistId == dentistId, ct);
@@ -74,6 +76,7 @@ public class AppointmentsController(DentistServicesDbContext db, IAppointmentEve
             }
         }
         metrics.Availability(AppointmentMetrics.ResultOk);
+        logger.AvailabilityQueried(dentistId, serviceId, slots.Count);
         return Ok(slots);
     }
 
@@ -96,6 +99,7 @@ public class AppointmentsController(DentistServicesDbContext db, IAppointmentEve
         db.WeeklyHours.AddRange(items.Select(x => new DentistWeeklyHours(dentistId.Value, x.DayOfWeek, x.StartTime, x.EndTime)));
         await db.SaveChangesAsync(ct); await tx.CommitAsync(ct);
         metrics.ScheduleUpdate("weekly", AppointmentMetrics.ResultOk);
+        logger.WeeklyScheduleUpdated(dentistId.Value, items.Count);
         return Ok(items);
     }
 
@@ -135,6 +139,7 @@ public class AppointmentsController(DentistServicesDbContext db, IAppointmentEve
         db.ScheduleExceptions.Add(new DentistScheduleException(dentistId.Value, request.Date, request.IsClosed, request.StartTime, request.EndTime));
         await db.SaveChangesAsync(ct);
         metrics.ScheduleUpdate("exception", AppointmentMetrics.ResultOk);
+        logger.ScheduleExceptionUpdated(dentistId.Value, request.Date, request.IsClosed);
         return Ok(request);
     }
 
@@ -198,6 +203,7 @@ public class AppointmentsController(DentistServicesDbContext db, IAppointmentEve
         if (dentistHeader is not null && service.DentistId != dentistHeader)
         {
             metrics.CreationRejected(AppointmentMetrics.ReasonForbiddenService, typeLabel);
+            logger.AppointmentDenied("service_not_owned_by_dentist", null, dentistHeader);
             return StatusCode(403, new { message = "Serviço não pertence ao dentista autenticado." });
         }
         if (!DateTimeOffset.TryParse(request.StartAt, CultureInfo.InvariantCulture, DateTimeStyles.None, out var startAt) ||
@@ -226,6 +232,7 @@ public class AppointmentsController(DentistServicesDbContext db, IAppointmentEve
         if (!open || !aligned)
         {
             metrics.CreationRejected(AppointmentMetrics.ReasonOutsideHours, typeLabel);
+            logger.AppointmentSlotConflict(service.DentistId, start, "outside_availability", null, service.Id);
             return Conflict(new { message = "Horário fora dos horários disponíveis." });
         }
         var end = start.AddMinutes(service.DurationMinutes);
@@ -234,6 +241,7 @@ public class AppointmentsController(DentistServicesDbContext db, IAppointmentEve
         if (overlap)
         {
             metrics.CreationRejected(AppointmentMetrics.ReasonSlotTaken, typeLabel);
+            logger.AppointmentSlotConflict(service.DentistId, start, "overlap", null, service.Id);
             return Conflict(new { message = "Horário ocupado." });
         }
         var appointment = new Appointment(service.DentistId, patientId.Value, service.Id, start, end, type, type == AppointmentType.Private ? service.Price : 0, request.InsuranceName, request.InsuranceCardNumber);
@@ -243,9 +251,12 @@ public class AppointmentsController(DentistServicesDbContext db, IAppointmentEve
         catch (Exception ex) when (ex is DbUpdateException || ex is PostgresException { SqlState: PostgresErrorCodes.SerializationFailure })
         {
             metrics.CreationRejected(AppointmentMetrics.ReasonSerializationConflict, typeLabel);
+            logger.AppointmentSlotConflict(service.DentistId, start, "concurrent_update", null, service.Id);
             return Conflict(new { message = "Horário ocupado." });
         }
         metrics.CreationCreated(typeLabel);
+        logger.AppointmentRequested(appointment.Id, appointment.DentistId, appointment.PatientId, appointment.ServiceId, start, type.ToString(),
+            (patientHeader is not null ? AppointmentActor.Patient : AppointmentActor.Dentist).ToString());
         return Created($"/api/appointments/{appointment.Id}", appointment);
     }
 
@@ -309,6 +320,7 @@ public class AppointmentsController(DentistServicesDbContext db, IAppointmentEve
             if (overlap)
             {
                 Record(AppointmentMetrics.ResultRejected, AppointmentMetrics.ReasonSlotTaken);
+                logger.AppointmentSlotConflict(item.DentistId, item.StartAtUtc, "overlap", item.Id, item.ServiceId);
                 return Conflict(new { message = "Horário ocupado." });
             }
             item.SetStatus(status);
@@ -317,10 +329,16 @@ public class AppointmentsController(DentistServicesDbContext db, IAppointmentEve
             catch (Exception ex) when (ex is DbUpdateException || ex is PostgresException { SqlState: PostgresErrorCodes.SerializationFailure })
             {
                 Record(AppointmentMetrics.ResultRejected, AppointmentMetrics.ReasonSerializationConflict);
+                logger.AppointmentSlotConflict(item.DentistId, item.StartAtUtc, "concurrent_update", item.Id, item.ServiceId);
                 return Conflict(new { message = "Horário ocupado." });
             }
+            logger.AppointmentConfirmed(item.Id, item.DentistId, item.PatientId, item.StartAtUtc);
         }
-        else { item.SetStatus(status); events.Rejected(item); await db.SaveChangesAsync(ct); }
+        else
+        {
+            item.SetStatus(status); events.Rejected(item); await db.SaveChangesAsync(ct);
+            logger.AppointmentRejected(item.Id, item.DentistId, item.PatientId, item.StartAtUtc);
+        }
         Record(AppointmentMetrics.ResultOk, AppointmentMetrics.ReasonNone);
         return Ok(item);
     }
@@ -352,12 +370,15 @@ public class AppointmentsController(DentistServicesDbContext db, IAppointmentEve
         if (dentistId is null && item.Status == AppointmentStatus.Confirmed && item.StartAtUtc < DateTime.UtcNow.AddHours(24))
         {
             metrics.Cancellation(AppointmentMetrics.ResultRejected, AppointmentMetrics.ReasonCancellationWindow, actor);
+            logger.AppointmentDenied("cancellation_too_late", item.Id, item.DentistId);
             return Conflict(new { message = "Cancelamento de consulta confirmada exige 24 horas de antecedência." });
         }
+        var cancelActor = dentistId is not null ? AppointmentActor.Dentist : AppointmentActor.Patient;
         item.SetStatus(AppointmentStatus.Cancelled);
-        events.Cancelled(item, dentistId is not null ? AppointmentActor.Dentist : AppointmentActor.Patient);
+        events.Cancelled(item, cancelActor);
         await db.SaveChangesAsync(ct);
         metrics.Cancellation(AppointmentMetrics.ResultOk, AppointmentMetrics.ReasonNone, actor);
+        logger.AppointmentCancelled(item.Id, item.DentistId, item.PatientId, item.StartAtUtc, cancelActor.ToString());
         return Ok(item);
     }
 }

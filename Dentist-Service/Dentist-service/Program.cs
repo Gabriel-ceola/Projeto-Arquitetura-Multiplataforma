@@ -8,11 +8,14 @@ using Dentist_service.DentistsServices.Infrastructure.Repositories;
 using Messaging;
 using Messaging.Telemetry;
 using Microsoft.EntityFrameworkCore;
+using Observability;
 using OpenTelemetry.Exporter;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.AddOdontoLogging();
 
 // ──────────────────────────────────────────────
 // Infraestrutura: EF Core + PostgreSQL
@@ -86,6 +89,8 @@ else
     // dispensado para que o Prometheus possa raspar /metrics via HTTP.
     app.UseHttpsRedirection();
 }
+
+app.UseOdontoObservability();
 
 app.MapControllers();
 app.MapHealthChecks("/health");

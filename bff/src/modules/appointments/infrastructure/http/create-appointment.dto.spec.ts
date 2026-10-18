@@ -12,11 +12,16 @@ const valid = {
 
 describe('CreateAppointmentDto', () => {
   it('accepts appointment requests with explicit ISO offset', async () => {
-    await expect(validate(plainToInstance(CreateAppointmentDto, valid))).resolves.toHaveLength(0);
+    await expect(
+      validate(plainToInstance(CreateAppointmentDto, valid)),
+    ).resolves.toHaveLength(0);
   });
 
   it('rejects a timestamp without offset', async () => {
-    const dto = plainToInstance(CreateAppointmentDto, { ...valid, startAt: '2026-11-02T09:00:00' });
+    const dto = plainToInstance(CreateAppointmentDto, {
+      ...valid,
+      startAt: '2026-11-02T09:00:00',
+    });
     await expect(validate(dto)).resolves.not.toHaveLength(0);
   });
 });

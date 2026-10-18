@@ -16,8 +16,13 @@ export const APPOINTMENTS_HTTP_CLIENT = Symbol('APPOINTMENTS_HTTP_CLIENT');
     ),
   ],
   controllers: [AppointmentsController],
-  providers: [{ provide: AppointmentsGateway, useFactory: (http: DownstreamHttpClient) => new AppointmentsGateway(http), inject: [APPOINTMENTS_HTTP_CLIENT] }],
+  providers: [
+    {
+      provide: AppointmentsGateway,
+      useFactory: (http: DownstreamHttpClient) => new AppointmentsGateway(http),
+      inject: [APPOINTMENTS_HTTP_CLIENT],
+    },
+  ],
   exports: [AppointmentsGateway],
 })
 export class AppointmentsModule {}
-

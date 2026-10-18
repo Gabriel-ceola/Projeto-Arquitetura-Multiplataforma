@@ -1,5 +1,6 @@
 using System.Text.Json.Serialization;
 using Microsoft.EntityFrameworkCore;
+using Observability;
 using OpenTelemetry.Exporter;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
@@ -11,6 +12,8 @@ using PaymentService.Infrastructure.Repositories;
 using PaymentService.Infrastructure.Telemetry;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.AddOdontoLogging();
 
 builder.Services.AddDbContext<PaymentDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
@@ -68,6 +71,8 @@ else
     // dispensado para que o Prometheus possa raspar /metrics via HTTP.
     app.UseHttpsRedirection();
 }
+
+app.UseOdontoObservability();
 
 app.UseAuthorization();
 
