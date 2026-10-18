@@ -152,3 +152,39 @@ jobs:
           name: Employee Service xUnit Tests
           path: employee-test-results/*.trx
           reporter: dotnet-trx
+
+  patient-service:
+    name: Patient Service (build & test)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Restore dependencies
+        run: dotnet restore Patient-Service/Patient-service.sln
+
+      - name: Build
+        run: dotnet build Patient-Service/Patient-service.sln --no-restore --configuration Release
+
+      - name: Test
+        run: >
+          dotnet test Patient-Service/Patient-service.Tests/Patient-service.Tests.csproj
+          --no-build
+          --configuration Release
+          --verbosity normal
+          --logger "trx;LogFileName=patient-test-results.trx"
+          --results-directory ./patient-test-results
+
+      - name: Publish test results
+        uses: dorny/test-reporter@v1
+        if: always()
+        with:
+          name: Patient Service xUnit Tests
+          path: patient-test-results/*.trx
+          reporter: dotnet-trx
