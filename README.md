@@ -127,14 +127,14 @@ Detalhes de evento, envelope e DLQ em [`kafka/README.md`](kafka/README.md).
 
 - Console admin: `http://localhost:8080` — usuário `admin`, senha `admin`
 - Realm: **`dentist`** (importado de `keycloak/keycloak/dentist-realm.json`)
-- Roles de realm: `dentist`, `employ`, `pacient`
+- Roles de realm: `dentist`, `employ`, `patient`
 - Usuários de teste (senha `123456`):
 
   | Usuário | Role | Acessa no BFF |
   |---|---|---|
   | `dentista1` | `dentist` | `/api/dentist-services` |
   | `funcionario1` | `employ` | `/api/employees` |
-  | `paciente1` | `pacient` | `/api/appointments` |
+  | `paciente1` | `patient` | `/api/appointments` |
 
 > O Keycloak só importa o realm quando ele ainda não existe. Se mudou o
 > `dentist-realm.json` (ou já tinha subido antes), recrie o banco para reimportar:
@@ -144,7 +144,7 @@ Detalhes de evento, envelope e DLQ em [`kafka/README.md`](kafka/README.md).
 
 Com o Keycloak no ar, o `keycloak/seed.sh` garante — de forma **idempotente**, sem
 apagar dados — o realm `dentist`, os clientes, as roles (`dentist`, `employ`,
-`pacient`) e os usuários de teste acima:
+`patient`) e os usuários de teste acima:
 
 ```bash
 ./keycloak/seed.sh

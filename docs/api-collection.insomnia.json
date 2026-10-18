@@ -8,7 +8,7 @@
       "_id": "wrk_odontologia",
       "_type": "workspace",
       "name": "Odontologia Integrada",
-      "description": "Collection dos quatro serviços: BFF (NestJS), Dentist-service, Employee-service e PaymentService (.NET). Configure o ambiente \"Local\" e obtenha um token por perfil no grupo Auth (dentista1/dentist, funcionario1/employ, paciente1/pacient).",
+      "description": "Collection dos quatro serviços: BFF (NestJS), Dentist-service, Employee-service e PaymentService (.NET). Configure o ambiente \"Local\" e obtenha um token por perfil no grupo Auth (dentista1/dentist, funcionario1/employ, paciente1/patient).",
       "scope": "collection"
     },
     {
@@ -30,9 +30,9 @@
         "employ_username": "funcionario1",
         "employ_password": "123456",
         "employ_token": "COLE_AQUI_O_TOKEN",
-        "pacient_username": "paciente1",
-        "pacient_password": "123456",
-        "pacient_token": "COLE_AQUI_O_TOKEN",
+        "patient_username": "paciente1",
+        "patient_password": "123456",
+        "patient_token": "COLE_AQUI_O_TOKEN",
         "dentist_id": "COLE_AQUI_UM_UUID",
         "patient_id": "COLE_AQUI_UM_UUID",
         "service_id": "COLE_AQUI_UM_UUID",
@@ -120,13 +120,13 @@
       }
     },
     {
-      "_id": "req_auth_pacient",
+      "_id": "req_auth_patient",
       "_type": "request",
       "parentId": "fld_auth",
-      "name": "POST token — paciente1 (role pacient)",
+      "name": "POST token — paciente1 (role patient)",
       "method": "POST",
       "url": "{{ keycloak_url }}/realms/{{ realm }}/protocol/openid-connect/token",
-      "description": "Perfil pacient. Copie o access_token para a variável pacient_token.",
+      "description": "Perfil patient. Copie o access_token para a variável patient_token.",
       "headers": [
         {
           "name": "Content-Type",
@@ -146,11 +146,11 @@
           },
           {
             "name": "username",
-            "value": "{{ pacient_username }}"
+            "value": "{{ patient_username }}"
           },
           {
             "name": "password",
-            "value": "{{ pacient_password }}"
+            "value": "{{ patient_password }}"
           }
         ]
       }
@@ -351,10 +351,10 @@
       "_id": "req_bff_avail",
       "_type": "request",
       "parentId": "fld_bff_appointments",
-      "name": "GET /api/availability (dentist | pacient)",
+      "name": "GET /api/availability (dentist | patient)",
       "method": "GET",
       "url": "{{ bff_url }}/api/availability?dentistId={{ dentist_id }}&serviceId={{ service_id }}",
-      "description": "Aceita token de dentist ({{ dentist_token }}) ou de pacient ({{ pacient_token }}).",
+      "description": "Aceita token de dentist ({{ dentist_token }}) ou de patient ({{ patient_token }}).",
       "authentication": {
         "type": "bearer",
         "token": "{{ dentist_token }}"
@@ -432,10 +432,10 @@
       "_id": "req_bff_appt_list",
       "_type": "request",
       "parentId": "fld_bff_appointments",
-      "name": "GET /api/appointments (dentist | pacient)",
+      "name": "GET /api/appointments (dentist | patient)",
       "method": "GET",
       "url": "{{ bff_url }}/api/appointments",
-      "description": "Aceita {{ dentist_token }} ou {{ pacient_token }} (o paciente vê os próprios pedidos).",
+      "description": "Aceita {{ dentist_token }} ou {{ patient_token }} (o paciente vê os próprios pedidos).",
       "authentication": {
         "type": "bearer",
         "token": "{{ dentist_token }}"
@@ -445,13 +445,13 @@
       "_id": "req_bff_appt_create",
       "_type": "request",
       "parentId": "fld_bff_appointments",
-      "name": "POST /api/appointments (dentist | pacient — Private)",
+      "name": "POST /api/appointments (dentist | patient — Private)",
       "method": "POST",
       "url": "{{ bff_url }}/api/appointments",
-      "description": "Use {{ pacient_token }} para solicitar como paciente, ou {{ dentist_token }} para solicitar em nome de um paciente (preencha patientId).",
+      "description": "Use {{ patient_token }} para solicitar como paciente, ou {{ dentist_token }} para solicitar em nome de um paciente (preencha patientId).",
       "authentication": {
         "type": "bearer",
-        "token": "{{ pacient_token }}"
+        "token": "{{ patient_token }}"
       },
       "headers": [
         {
@@ -473,7 +473,7 @@
       "url": "{{ bff_url }}/api/appointments",
       "authentication": {
         "type": "bearer",
-        "token": "{{ pacient_token }}"
+        "token": "{{ patient_token }}"
       },
       "headers": [
         {
@@ -514,10 +514,10 @@
       "_id": "req_bff_appt_cancel",
       "_type": "request",
       "parentId": "fld_bff_appointments",
-      "name": "POST /api/appointments/:id/cancel (dentist | pacient)",
+      "name": "POST /api/appointments/:id/cancel (dentist | patient)",
       "method": "POST",
       "url": "{{ bff_url }}/api/appointments/{{ appointment_id }}/cancel",
-      "description": "Use {{ pacient_token }} para cancelar como paciente (exige 24h de antecedência em consulta confirmada).",
+      "description": "Use {{ patient_token }} para cancelar como paciente (exige 24h de antecedência em consulta confirmada).",
       "authentication": {
         "type": "bearer",
         "token": "{{ dentist_token }}"

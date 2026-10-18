@@ -16,7 +16,7 @@ export class AppointmentsController {
   constructor(@Inject(AppointmentsGateway) private readonly gateway: AppointmentsGateway) {}
 
   @Get('availability')
-  @Auth(Role.Pacient, Role.Dentist)
+  @Auth(Role.Patient, Role.Dentist)
   @ApiOperation({ summary: 'Consulta horários disponíveis nos próximos 30 dias' })
   @ApiQuery({ name: 'dentistId', required: true, format: 'uuid' })
   @ApiQuery({ name: 'serviceId', required: true, format: 'uuid' })
@@ -49,11 +49,11 @@ export class AppointmentsController {
   setException(@Body() body: ScheduleExceptionDto, @CurrentUser() user: AuthenticatedUser) { return this.gateway.request('PUT', 'dentist-schedule/exceptions', { dentistId: user.id }, body); }
 
   @Get('appointments')
-  @Auth(Role.Dentist, Role.Pacient)
+  @Auth(Role.Dentist, Role.Patient)
   list(@CurrentUser() user: AuthenticatedUser) { return this.gateway.request('GET', 'appointments', this.identity(user)); }
 
   @Post('appointments')
-  @Auth(Role.Dentist, Role.Pacient)
+  @Auth(Role.Dentist, Role.Patient)
   @ApiOperation({ summary: 'Solicita consulta particular ou por convênio' })
   @ApiCreatedResponse()
   @ApiConflictResponse({ type: ErrorResponseDto })
@@ -70,7 +70,7 @@ export class AppointmentsController {
   reject(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: AuthenticatedUser) { return this.gateway.request('POST', `appointments/${id}/reject`, { dentistId: user.id }, {}); }
 
   @Post('appointments/:id/cancel')
-  @Auth(Role.Dentist, Role.Pacient)
+  @Auth(Role.Dentist, Role.Patient)
   cancel(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: AuthenticatedUser) { return this.gateway.request('POST', `appointments/${id}/cancel`, this.identity(user), {}); }
 
   private identity(user: AuthenticatedUser) { return user.roles.includes(Role.Dentist) ? { dentistId: user.id } : { patientId: user.id }; }

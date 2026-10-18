@@ -57,7 +57,7 @@ para que F2–F6 já entreguem código + testes juntos.
 
 ### Domínio e aplicação
 
-- [x] **T-02.1** ⚡ `auth/domain/role.enum.ts` (`employ`, `dentist`, `pacient`) e `authenticated-user.ts` (§5.4).
+- [x] **T-02.1** ⚡ `auth/domain/role.enum.ts` (`employ`, `dentist`, `patient`) e `authenticated-user.ts` (§5.4).
       **DoD:** valores do enum confirmados com o Keycloak real (decisão D-1).
 - [x] **T-02.2** ⚡ `auth/domain/auth-errors.ts`: `InvalidTokenError` (`INVALID_TOKEN`), `InsufficientRoleError` (`INSUFFICIENT_ROLE`).
       **DoD:** estendem `DomainError`.
@@ -270,7 +270,7 @@ para que F2–F6 já entreguem código + testes juntos.
 
 - [x] **T-08.1** `Dockerfile` multi-stage (node:20-alpine), usuário não root, `HEALTHCHECK` em `/health`.
       **DoD:** imagem sobe e responde `/health`.
-- [x] **T-08.2** `docker-compose.dev.yml` com Keycloak (realm de dev importado com as roles `employ`, `dentist`, `pacient` e 3 usuários de teste), BFF e mock do Dentist Service.
+- [x] **T-08.2** `docker-compose.dev.yml` com Keycloak (realm de dev importado com as roles `employ`, `dentist`, `patient` e 3 usuários de teste), BFF e mock do Dentist Service.
       **DoD:** `docker compose up` permite obter token e chamar o BFF ponta a ponta.
 - [x] **T-08.3** Pipeline CI: install → lint → `arch:check` → unit → e2e → build.
       **DoD:** pipeline verde.
@@ -282,7 +282,7 @@ para que F2–F6 já entreguem código + testes juntos.
 ## Checklist final de aceitação
 
 - [ ] Todas as rotas `/api/dentist-services` retornam **401** sem token válido.
-- [ ] `pacient` e `employ` recebem **403**; `dentist` acessa.
+- [ ] `patient` e `employ` recebem **403**; `dentist` acessa.
 - [ ] O cliente nunca envia `X-Dentist-Id` nem `dentistId`; o BFF usa o `sub` do token.
 - [ ] Dentista A **não** consegue ler, alterar ou apagar serviço do dentista B (incluindo **PUT**).
 - [ ] Erros sempre no formato `{ "message": string }`.
@@ -298,7 +298,7 @@ para que F2–F6 já entreguem código + testes juntos.
 
 ## Backlog futuro (fora desta entrega)
 
-- [ ] Módulos `pacient` e `employ` (novas rotas com `@Auth(Role.Pacient)` / `@Auth(Role.Employ)`).
+- [ ] Módulos `patient` e `employ` (novas rotas com `@Auth(Role.Patient)` / `@Auth(Role.Employ)`).
 - [ ] Atualizar o contrato do Dentist Service para exigir `X-Dentist-Id` no `PUT` e retornar 403 → remover o pré-check do `UpdateDentistServiceUseCase`.
 - [ ] Geração de tipos do downstream a partir do `openapi.yml` (`openapi-typescript`) para validar o mapper em tempo de compilação.
 - [ ] Cache curto de leituras e circuit breaker no `DownstreamHttpClient`.
