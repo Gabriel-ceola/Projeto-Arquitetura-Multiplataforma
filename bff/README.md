@@ -1,7 +1,7 @@
 # BFF Odontológico (NestJS · Hexagonal · Keycloak RBAC)
 
 Única porta de entrada HTTP para os clientes (web/mobile). Autentica via JWT do
-Keycloak (JWKS/RS256), autoriza por RBAC (`employ` | `dentist` | `pacient`) e
+Keycloak (JWKS/RS256), autoriza por RBAC (`employ` | `dentist` | `patient`) e
 orquestra o **Dentist Service** e o **Employee Service**. Spec em `docs/specs/spec01.md`, tarefas em
 `docs/tasks/task01.md`.
 
@@ -43,7 +43,7 @@ Headers, tokens e query strings não são logados. Detalhes em
 ## Como obter um token de teste
 
 1. No Keycloak, crie o realm/cliente `bff-clinica` com uma role de realm
-   `dentist` (valores exatos: `employ`, `dentist`, `pacient` — case-sensitive).
+   `dentist` (valores exatos: `employ`, `dentist`, `patient` — case-sensitive).
 2. Crie um usuário de teste com a role `dentist`.
 3. Obtenha o token (Direct Access Grants, apenas dev):
    ```bash
@@ -91,7 +91,7 @@ curl -H "Authorization: Bearer $TOKEN" http://localhost:3000/api/employees
 
 ## Matriz RBAC
 
-| Recurso                                               |          `employ`          | `dentist` | `pacient` |
+| Recurso                                               |          `employ`          | `dentist` | `patient` |
 | ----------------------------------------------------- | :------------------------: | :-------: | :-------: |
 | `/api/dentist-services` (todas)                       |            403             |    ✅     |    403    |
 | `/api/appointments`, `/api/availability`              |            403             |    ✅     |    ✅     |
@@ -119,7 +119,7 @@ Sem token/token inválido → `401`; sem a role → `403`. Rotas sem
 Testes E2E (`T-07.21–T-07.25`) foram **pulados nesta entrega** a infra (`configureApp`, `jwt-test-kit`, `downstream-mock`) está
 pronta para reativá-los.
 
-## Como adicionar um novo módulo (ex.: `pacient-services`)
+## Como adicionar um novo módulo (ex.: `patient-services`)
 
 > O módulo `employees` é um exemplo completo desse passo a passo.
 

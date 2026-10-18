@@ -53,7 +53,7 @@ O Dentist-Service sobe mesmo sem o Kafka. Os eventos ficam guardados no outbox e
 
 | Tópico             | Produtor                                   | Consumidores                                    | Eventos                                                                                        |
 |--------------------|--------------------------------------------|-------------------------------------------------|------------------------------------------------------------------------------------------------|
-| `appointments`     | Dentist-Service (interino, até existir o Scheduled-Service) | Payment-service, Pacient-Service (planejados) | `AppointmentRequested`, `AppointmentConfirmed`, `AppointmentRejected`, `AppointmentCancelled` |
+| `appointments`     | Dentist-Service (interino, até existir o Scheduled-Service) | Payment-service, Patient-Service (planejados) | `AppointmentRequested`, `AppointmentConfirmed`, `AppointmentRejected`, `AppointmentCancelled` |
 | `payments`         | Payment-service (planejado)                | Dentist-Service                                 | `PaymentApproved`, `PaymentFailed`                                                             |
 | `health-insurance` | healthInsurance-service (planejado)        | Dentist-Service                                 | `InsuranceAuthorized`, `InsuranceDenied`                                                       |
 

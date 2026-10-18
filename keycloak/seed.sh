@@ -5,7 +5,7 @@
 # Garante, com o Keycloak já em execução, que existam:
 #   - o realm `dentist`
 #   - os clientes `dentist-app` (público) e `dentist-api`
-#   - as roles de realm `dentist`, `employ` e `pacient`
+#   - as roles de realm `dentist`, `employ` e `patient`
 #   - os usuários de teste `dentista1`, `funcionario1` e `paciente1`
 #   - o accessTokenLifespan do realm em 12h (evita expiração nos testes)
 #
@@ -128,7 +128,7 @@ ensure_role() {
 
 ensure_role dentist "Dentista dono de serviços"
 ensure_role employ "Funcionário da clínica (gestão de funcionários)"
-ensure_role pacient "Paciente que solicita agendamentos"
+ensure_role patient "Paciente que solicita agendamentos"
 
 # ─────────────────────────────────────────────────────────────
 # Usuários
@@ -154,10 +154,10 @@ ensure_user() {
 
 ensure_user dentista1    dentista1@teste.com    Dentista   Teste dentist
 ensure_user funcionario1 funcionario1@teste.com Funcionario Teste employ
-ensure_user paciente1    paciente1@teste.com    Paciente   Teste pacient
+ensure_user paciente1    paciente1@teste.com    Paciente   Teste patient
 
 echo
 echo "Seed concluído. Usuários de teste (senha '$DEFAULT_PASSWORD'):"
 echo "  dentista1    -> role dentist"
 echo "  funcionario1 -> role employ"
-echo "  paciente1    -> role pacient"
+echo "  paciente1    -> role patient"

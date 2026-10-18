@@ -7,7 +7,14 @@ import { AppointmentsGateway } from './appointments.gateway';
 export const APPOINTMENTS_HTTP_CLIENT = Symbol('APPOINTMENTS_HTTP_CLIENT');
 
 @Module({
-  imports: [DownstreamHttpModule.forClient(APPOINTMENTS_HTTP_CLIENT)],
+  imports: [
+    DownstreamHttpModule.forClient(
+      APPOINTMENTS_HTTP_CLIENT,
+      'DENTIST_SERVICE_BASE_URL',
+      'DOWNSTREAM_TIMEOUT_MS',
+      'appointments',
+    ),
+  ],
   controllers: [AppointmentsController],
   providers: [
     {

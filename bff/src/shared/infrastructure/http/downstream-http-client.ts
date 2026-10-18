@@ -10,6 +10,7 @@ import {
   LOG_EVENTS,
   pathWithoutQuery,
 } from '@shared/infrastructure/logging/log-events';
+import { MetricsService } from '@shared/infrastructure/metrics/metrics.service';
 import { correlationIdStorage } from './correlation-id.storage';
 
 export class DownstreamHttpStatusError extends Error {
@@ -44,6 +45,8 @@ export class DownstreamHttpClient {
     private readonly baseUrl: string,
     private readonly timeoutMs: number,
     private readonly defaultHeaders: Record<string, string> = {},
+    private readonly metrics?: MetricsService,
+    private readonly clientName: string = 'unknown',
   ) {}
 
   async request<T>(options: RequestOptions): Promise<T | undefined> {
@@ -76,17 +79,27 @@ export class DownstreamHttpClient {
     } catch (err) {
       const error = err as Error;
       if (error.name === 'AbortError' || error.name === 'TimeoutError') {
+        this.recordDownstream(method, path, 'timeout', 0, startedAt);
         this.logFailure(LOG_EVENTS.DOWNSTREAM_TIMEOUT, options, startedAt, {
           message: `Timeout de ${this.timeoutMs}ms ao chamar o serviço downstream`,
         });
         throw new DownstreamTimeoutError();
       }
+      this.recordDownstream(method, path, 'unavailable', 0, startedAt);
       this.logFailure(LOG_EVENTS.DOWNSTREAM_UNAVAILABLE, options, startedAt, {
         message: 'Falha de conexão com o serviço downstream',
         errorType: error.name,
       });
       throw new DownstreamUnavailableError();
     }
+
+    this.recordDownstream(
+      method,
+      path,
+      response.ok ? 'ok' : 'error',
+      response.status,
+      startedAt,
+    );
 
     if (response.status === 204) {
       return undefined;
@@ -138,6 +151,26 @@ export class DownstreamHttpClient {
     }
 
     return responseBody as T;
+  }
+
+  private recordDownstream(
+    method: string,
+    path: string,
+    outcome: string,
+    status: number,
+    startedAt: number,
+  ): void {
+    if (!this.metrics) {
+      return;
+    }
+    const durationSeconds = (performance.now() - startedAt) / 1000;
+    this.metrics.observeDownstream(
+      this.clientName,
+      method,
+      outcome,
+      status,
+      durationSeconds,
+    );
   }
 
   private logFailure(

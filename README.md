@@ -54,6 +54,7 @@ todas as aplicações.
 | Keycloak | Keycloak 26 + PostgreSQL | `keycloak/` |
 | ELK | Elasticsearch + Logstash + Kibana + Filebeat 8.17 (logs) | `elk/` |
 | Observability | Biblioteca .NET (logs JSON ECS + correlation id) | `Observability/` |
+| Observabilidade | Prometheus + Grafana + kafka-exporter | `observability/` |
 
 ---
 
@@ -87,6 +88,9 @@ todas as aplicações.
 | Postgres Payment | **5433** | db `payment_service` |
 | Postgres Employee | **5434** | db `employee_service` |
 | Postgres Keycloak | **5435** | db `keycloak` |
+| Prometheus | **9090** | métricas dos serviços (ver `observability/`) |
+| Grafana | **3001** | `admin`/`admin` — dashboards versionados |
+| kafka-exporter | **9308** | métricas do broker para o Prometheus |
 
 Todas as senhas de desenvolvimento são `postgres` (bancos) e o Kafka é `PLAINTEXT`.
 
@@ -130,14 +134,14 @@ Detalhes de evento, envelope e DLQ em [`kafka/README.md`](kafka/README.md).
 
 - Console admin: `http://localhost:8080` — usuário `admin`, senha `admin`
 - Realm: **`dentist`** (importado de `keycloak/keycloak/dentist-realm.json`)
-- Roles de realm: `dentist`, `employ`, `pacient`
+- Roles de realm: `dentist`, `employ`, `patient`
 - Usuários de teste (senha `123456`):
 
   | Usuário | Role | Acessa no BFF |
   |---|---|---|
   | `dentista1` | `dentist` | `/api/dentist-services` |
   | `funcionario1` | `employ` | `/api/employees` |
-  | `paciente1` | `pacient` | `/api/appointments` |
+  | `paciente1` | `patient` | `/api/appointments` |
 
 > O Keycloak só importa o realm quando ele ainda não existe. Se mudou o
 > `dentist-realm.json` (ou já tinha subido antes), recrie o banco para reimportar:
@@ -147,7 +151,7 @@ Detalhes de evento, envelope e DLQ em [`kafka/README.md`](kafka/README.md).
 
 Com o Keycloak no ar, o `keycloak/seed.sh` garante — de forma **idempotente**, sem
 apagar dados — o realm `dentist`, os clientes, as roles (`dentist`, `employ`,
-`pacient`) e os usuários de teste acima:
+`patient`) e os usuários de teste acima:
 
 ```bash
 ./keycloak/seed.sh
@@ -253,6 +257,34 @@ docker compose -f PaymentService/docker-compose.yml up -d
 (cd PaymentService && dotnet run)                     # :5127
 (cd bff && pnpm run start:dev)                        # :3000
 ```
+
+---
+
+## Observabilidade (Prometheus + Grafana)
+
+Stack completa em `observability/`, cobrindo os fluxos de **agendamento** e
+**pagamento** de ponta a ponta (negócio, Kafka/outbox/DLQ, HTTP e runtime).
+
+```bash
+# Kafka precisa estar no ar primeiro
+docker compose -f kafka/docker-compose.yaml up -d
+docker compose -f observability/docker-compose.yaml up -d
+
+# Prometheus → http://localhost:9090   |   Grafana → http://localhost:3001 (admin/admin)
+```
+
+Para o Prometheus (em container) raspar as apps (no host), suba-as escutando em
+**`0.0.0.0`** — o bind padrão de dev (`localhost`) não é acessível de dentro do
+container:
+
+```bash
+(cd Dentist-Service/Dentist-service && ASPNETCORE_URLS=http://0.0.0.0:5068 dotnet run --no-launch-profile)
+(cd PaymentService && ASPNETCORE_URLS=http://0.0.0.0:5127 dotnet run --no-launch-profile)
+(cd bff && pnpm run start:dev)
+```
+
+Endpoints: `/metrics` e `/health` em cada app. Dashboards e catálogo completo de
+métricas em [`observability/README.md`](observability/README.md).
 
 ---
 

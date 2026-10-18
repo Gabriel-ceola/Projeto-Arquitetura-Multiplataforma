@@ -14,7 +14,14 @@ import { DentistServicesController } from './http/dentist-services.controller';
 export const DENTIST_HTTP_CLIENT = Symbol('DENTIST_HTTP_CLIENT');
 
 @Module({
-  imports: [DownstreamHttpModule.forClient(DENTIST_HTTP_CLIENT)],
+  imports: [
+    DownstreamHttpModule.forClient(
+      DENTIST_HTTP_CLIENT,
+      'DENTIST_SERVICE_BASE_URL',
+      'DOWNSTREAM_TIMEOUT_MS',
+      'dentist-services',
+    ),
+  ],
   controllers: [DentistServicesController],
   providers: [
     {

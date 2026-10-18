@@ -38,7 +38,7 @@ export class AppointmentsController {
   ) {}
 
   @Get('availability')
-  @Auth(Role.Pacient, Role.Dentist)
+  @Auth(Role.Patient, Role.Dentist)
   @ApiOperation({
     summary: 'Consulta horários disponíveis nos próximos 30 dias',
   })
@@ -128,13 +128,13 @@ export class AppointmentsController {
   }
 
   @Get('appointments')
-  @Auth(Role.Dentist, Role.Pacient)
+  @Auth(Role.Dentist, Role.Patient)
   list(@CurrentUser() user: AuthenticatedUser) {
     return this.gateway.request('GET', 'appointments', this.identity(user));
   }
 
   @Post('appointments')
-  @Auth(Role.Dentist, Role.Pacient)
+  @Auth(Role.Dentist, Role.Patient)
   @ApiOperation({ summary: 'Solicita consulta particular ou por convênio' })
   @ApiCreatedResponse()
   @ApiConflictResponse({ type: ErrorResponseDto })
@@ -179,7 +179,7 @@ export class AppointmentsController {
   }
 
   @Post('appointments/:id/cancel')
-  @Auth(Role.Dentist, Role.Pacient)
+  @Auth(Role.Dentist, Role.Patient)
   cancel(
     @Param('id', ParseUUIDPipe) id: string,
     @CurrentUser() user: AuthenticatedUser,

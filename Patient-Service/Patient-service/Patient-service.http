@@ -1,0 +1,42 @@
+@Patient_service_HostAddress = http://localhost:5072
+@patientId = 00000000-0000-0000-0000-000000000000
+
+### Listar pacientes
+GET {{Patient_service_HostAddress}}/api/patients
+Accept: application/json
+
+### Cadastrar paciente
+POST {{Patient_service_HostAddress}}/api/patients
+Content-Type: application/json
+
+{
+  "name": "Carlos Pereira",
+  "cpf": "987.654.321-00",
+  "email": "carlos.pereira@email.com",
+  "phone": "(43) 98888-7777",
+  "birthDate": "1990-05-20",
+  "status": "ativo",
+  "insuranceName": "Unimed",
+  "insuranceCardNumber": "0001234"
+}
+
+### Buscar paciente por Id — substitua @patientId pelo id retornado no cadastro
+GET {{Patient_service_HostAddress}}/api/patients/{{patientId}}
+Accept: application/json
+
+### Editar paciente
+PUT {{Patient_service_HostAddress}}/api/patients/{{patientId}}
+Content-Type: application/json
+
+{
+  "name": "Carlos Pereira Lima",
+  "email": "carlos.lima@email.com",
+  "phone": "43988887777",
+  "birthDate": "1990-05-20",
+  "status": "ativo"
+}
+
+### Remover paciente
+DELETE {{Patient_service_HostAddress}}/api/patients/{{patientId}}
+
+###

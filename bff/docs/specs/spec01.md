@@ -10,7 +10,7 @@
 O BFF (Backend for Frontend) é a única porta de entrada HTTP para os clientes (web/mobile). Ele:
 
 1. **Autentica** requisições validando o JWT emitido pelo **Keycloak** via **JWKS** (assinatura RS256).
-2. **Autoriza** por **RBAC** usando as roles `employ`, `dentist` e `pacient`.
+2. **Autoriza** por **RBAC** usando as roles `employ`, `dentist` e `patient`.
 3. **Orquestra** chamadas a serviços de domínio downstream. Hoje existe apenas o **Dentist Service** (contrato em `openapi.yml`).
 4. **Traduz** identidade do token para o contrato do serviço downstream (ex.: `sub` → header `X-Dentist-Id`), de modo que o cliente nunca informe sua própria identidade.
 
@@ -24,7 +24,7 @@ O BFF (Backend for Frontend) é a única porta de entrada HTTP para os clientes 
 
 - Emissão/refresh de tokens (responsabilidade do Keycloak e do cliente).
 - Persistência própria (o BFF é stateless).
-- Módulos de `pacient` e `employ` (a arquitetura os prevê, mas não são implementados).
+- Módulos de `patient` e `employ` (a arquitetura os prevê, mas não são implementados).
 - Cache de respostas downstream.
 
 ---
@@ -110,7 +110,7 @@ src/
 └── modules/
     ├── auth/
     │   ├── domain/
-    │   │   ├── role.enum.ts                 # employ | dentist | pacient
+    │   │   ├── role.enum.ts                 # employ | dentist | patient
     │   │   ├── authenticated-user.ts
     │   │   └── auth-errors.ts               # InvalidToken, InsufficientRole
     │   ├── application/
@@ -174,7 +174,7 @@ src/
 | Variáveis de ambiente lidas com `process.env` espalhado | `AppConfig` tipado (zod) injetado |
 | Interface de use case reescrita | `UseCase<In, Out>` em `shared/application` |
 
-> Regra de bom senso: só abstrair após a **segunda** ocorrência real. A lista acima já tem a segunda ocorrência garantida (futuros módulos de pacient/employ).
+> Regra de bom senso: só abstrair após a **segunda** ocorrência real. A lista acima já tem a segunda ocorrência garantida (futuros módulos de patient/employ).
 
 ---
 
@@ -230,7 +230,7 @@ Função pura `extractRoles(claims, options): Role[]` em `auth/application/role-
 export enum Role {
   Employ = 'employ',
   Dentist = 'dentist',
-  Pacient = 'pacient',
+  Patient = 'patient',
 }
 
 // domain/authenticated-user.ts
@@ -258,7 +258,7 @@ export interface TokenVerifierPort {
 
 ### 6.1 Matriz de acesso
 
-| Recurso | `employ` | `dentist` | `pacient` |
+| Recurso | `employ` | `dentist` | `patient` |
 |---|:---:|:---:|:---:|
 | `/api/dentist-services` (todas as operações) | ❌ | ✅ | ❌ |
 | `/health` | público | público | público |
@@ -530,7 +530,7 @@ Sem Nest, sem HTTP, sem rede. Cada use case é instanciado com `new` recebendo o
 | # | Cenário | Esperado |
 |---|---|---|
 | 1 | `source=realm`, `realm_access.roles=['dentist']` | `[Role.Dentist]` |
-| 2 | `source=client`, `resource_access[clientId].roles=['pacient']` | `[Role.Pacient]` |
+| 2 | `source=client`, `resource_access[clientId].roles=['patient']` | `[Role.Patient]` |
 | 3 | `source=realm` mas roles só em `resource_access` | `[]` |
 | 4 | Claim `realm_access` ausente | `[]` |
 | 5 | Roles desconhecidas (`offline_access`, `uma_authorization`, `admin`) | ignoradas |
@@ -690,7 +690,7 @@ JWKS local e `downstream-mock` iniciados em `beforeAll`; `AppModule` real com `b
 |---|---|---|
 | 1 | Qualquer rota de `/api/dentist-services` sem `Authorization` | 401 `{ message }` |
 | 2 | Token expirado / assinatura inválida / `iss` errado / `alg=none` | 401 |
-| 3 | Role `pacient` | 403 |
+| 3 | Role `patient` | 403 |
 | 4 | Role `employ` | 403 |
 | 5 | Role `dentist` | 2xx |
 | 6 | Token válido sem role alguma / só roles desconhecidas | 403 |
@@ -772,7 +772,7 @@ Cobertura é um piso, não o objetivo: os cenários das tabelas acima são o cri
 
 ## 14. Extensibilidade (como adicionar um novo módulo)
 
-Para um futuro `pacient-services` ou `employ-*`:
+Para um futuro `patient-services` ou `employ-*`:
 
 1. Criar `modules/<nome>/{domain,application,infrastructure}` seguindo o mesmo molde.
 2. Declarar a porta OUT e os use cases.
