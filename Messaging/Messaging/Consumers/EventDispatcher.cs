@@ -1,7 +1,9 @@
+using System.Diagnostics;
 using System.Globalization;
 using System.Text.Json;
 using Messaging.Contracts;
 using Messaging.Kafka;
+using Messaging.Telemetry;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -16,10 +18,15 @@ public sealed class EventDispatcher
     public const string ConsumerGroupHeader = "dlq-consumer-group";
     public const string ErrorHeader = "dlq-error";
 
+    private const string DeadLetterInvalidEnvelope = "invalid_envelope";
+    private const string DeadLetterInvalidJson = "invalid_json";
+    private const string DeadLetterHandlerFailed = "handler_failed";
+
     private readonly EventHandlerRegistry _registry;
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly IMessageProducer _producer;
     private readonly KafkaConsumerOptions _options;
+    private readonly MessagingMetrics _metrics;
     private readonly ILogger<EventDispatcher> _logger;
 
     public EventDispatcher(
@@ -27,21 +34,26 @@ public sealed class EventDispatcher
         IServiceScopeFactory scopeFactory,
         IMessageProducer producer,
         IOptions<KafkaOptions> options,
+        MessagingMetrics metrics,
         ILogger<EventDispatcher> logger)
     {
         _registry = registry;
         _scopeFactory = scopeFactory;
         _producer = producer;
         _options = options.Value.Consumer;
+        _metrics = metrics;
         _logger = logger;
     }
 
     public async Task<DispatchResult> DispatchAsync(ConsumedMessage message, CancellationToken cancellationToken = default)
     {
+        var startedAt = Stopwatch.GetTimestamp();
+
         var envelope = TryReadEnvelope(message, out var readError);
         if (envelope is null)
         {
-            await DeadLetterAsync(message, readError, cancellationToken);
+            await DeadLetterAsync(message, readError, DeadLetterInvalidEnvelope, cancellationToken);
+            Record(message.Topic, "deadlettered", startedAt);
             return DispatchResult.DeadLettered;
         }
 
@@ -49,6 +61,7 @@ public sealed class EventDispatcher
         {
             _logger.LogInformation("Evento {EventType} ({EventId}) recebido em {Topic} sem handler registrado.",
                 envelope.EventType, envelope.EventId, message.Topic);
+            Record(message.Topic, "skipped", startedAt);
             return DispatchResult.Skipped;
         }
 
@@ -70,6 +83,7 @@ public sealed class EventDispatcher
             {
                 await using var scope = _scopeFactory.CreateAsyncScope();
                 await registration.InvokeAsync(scope.ServiceProvider, envelope.Data, metadata, cancellationToken);
+                Record(message.Topic, "handled", startedAt);
                 return DispatchResult.Handled;
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -78,23 +92,32 @@ public sealed class EventDispatcher
             }
             catch (JsonException exception)
             {
-                await DeadLetterAsync(message, exception.Message, cancellationToken);
+                await DeadLetterAsync(message, exception.Message, DeadLetterInvalidJson, cancellationToken);
+                Record(message.Topic, "deadlettered", startedAt);
                 return DispatchResult.DeadLettered;
             }
             catch (Exception exception) when (attempt > _options.MaxRetries)
             {
                 _logger.LogError(exception, "Evento {EventType} ({EventId}) falhou após {Attempts} tentativas.",
                     envelope.EventType, envelope.EventId, attempt);
-                await DeadLetterAsync(message, exception.Message, cancellationToken);
+                await DeadLetterAsync(message, exception.Message, DeadLetterHandlerFailed, cancellationToken);
+                Record(message.Topic, "deadlettered", startedAt);
                 return DispatchResult.DeadLettered;
             }
             catch (Exception exception)
             {
                 _logger.LogWarning(exception, "Tentativa {Attempt} do evento {EventType} ({EventId}) falhou.",
                     attempt, envelope.EventType, envelope.EventId);
+                _metrics.ConsumerRetry(message.Topic, envelope.EventType);
                 await Task.Delay(TimeSpan.FromMilliseconds(_options.RetryDelayMs), cancellationToken);
             }
         }
+    }
+
+    private void Record(string topic, string result, long startedAt)
+    {
+        _metrics.ConsumerMessage(topic, result);
+        _metrics.ConsumerDuration(topic, Stopwatch.GetElapsedTime(startedAt).TotalSeconds);
     }
 
     private static EventEnvelope? TryReadEnvelope(ConsumedMessage message, out string error)
@@ -118,7 +141,7 @@ public sealed class EventDispatcher
         }
     }
 
-    private async Task DeadLetterAsync(ConsumedMessage message, string error, CancellationToken cancellationToken)
+    private async Task DeadLetterAsync(ConsumedMessage message, string error, string reason, CancellationToken cancellationToken)
     {
         var headers = new Dictionary<string, string>
         {
@@ -130,6 +153,7 @@ public sealed class EventDispatcher
         };
 
         await _producer.ProduceAsync(Topics.DeadLetterOf(message.Topic), message.Key, message.Value ?? string.Empty, headers, cancellationToken);
+        _metrics.ConsumerDeadLetter(message.Topic, reason);
         _logger.LogWarning("Mensagem {Topic}/{Partition}@{Offset} enviada para a DLQ: {Error}",
             message.Topic, message.Partition, message.Offset, error);
     }

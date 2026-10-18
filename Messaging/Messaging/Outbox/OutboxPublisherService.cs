@@ -1,4 +1,6 @@
+using System.Diagnostics;
 using Messaging.Kafka;
+using Messaging.Telemetry;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -12,17 +14,20 @@ public sealed class OutboxPublisherService<TDbContext> : BackgroundService where
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly IMessageProducer _producer;
     private readonly KafkaOutboxOptions _options;
+    private readonly MessagingMetrics _metrics;
     private readonly ILogger<OutboxPublisherService<TDbContext>> _logger;
 
     public OutboxPublisherService(
         IServiceScopeFactory scopeFactory,
         IMessageProducer producer,
         IOptions<KafkaOptions> options,
+        MessagingMetrics metrics,
         ILogger<OutboxPublisherService<TDbContext>> logger)
     {
         _scopeFactory = scopeFactory;
         _producer = producer;
         _options = options.Value.Outbox;
+        _metrics = metrics;
         _logger = logger;
     }
 
@@ -58,6 +63,7 @@ public sealed class OutboxPublisherService<TDbContext> : BackgroundService where
 
     internal async Task<int> PublishPendingAsync(CancellationToken cancellationToken = default)
     {
+        var startedAt = Stopwatch.GetTimestamp();
         await using var scope = _scopeFactory.CreateAsyncScope();
         var context = scope.ServiceProvider.GetRequiredService<TDbContext>();
 
@@ -79,6 +85,7 @@ public sealed class OutboxPublisherService<TDbContext> : BackgroundService where
             {
                 message.RegisterFailure(exception.Message);
                 await context.SaveChangesAsync(cancellationToken);
+                _metrics.OutboxPublishFailed(message.Topic);
                 _logger.LogWarning(exception, "Falha ao publicar o evento {EventId} ({EventType}) no tópico {Topic}.",
                     message.Id, message.EventType, message.Topic);
                 break;
@@ -86,9 +93,16 @@ public sealed class OutboxPublisherService<TDbContext> : BackgroundService where
 
             message.MarkAsProcessed(DateTime.UtcNow);
             await context.SaveChangesAsync(cancellationToken);
+            _metrics.OutboxPublished(message.EventType, message.Topic);
             published++;
         }
 
+        _metrics.OutboxPending(await CountPendingAsync(context, cancellationToken));
+        _metrics.OutboxPublishDuration(Stopwatch.GetElapsedTime(startedAt).TotalSeconds);
+
         return published;
     }
+
+    private static Task<int> CountPendingAsync(TDbContext context, CancellationToken cancellationToken) =>
+        context.Set<OutboxMessage>().CountAsync(x => x.ProcessedAtUtc == null, cancellationToken);
 }

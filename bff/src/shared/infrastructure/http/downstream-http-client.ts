@@ -5,6 +5,7 @@ import {
 } from '@shared/domain/common-errors';
 import { HEADERS } from '@shared/infrastructure/constants/headers';
 import { DomainError } from '@shared/domain/domain-error';
+import { MetricsService } from '@shared/infrastructure/metrics/metrics.service';
 import { correlationIdStorage } from './correlation-id.storage';
 
 export class DownstreamHttpStatusError extends Error {
@@ -37,6 +38,8 @@ export class DownstreamHttpClient {
     private readonly baseUrl: string,
     private readonly timeoutMs: number,
     private readonly defaultHeaders: Record<string, string> = {},
+    private readonly metrics?: MetricsService,
+    private readonly clientName: string = 'unknown',
   ) {}
 
   async request<T>(options: RequestOptions): Promise<T | undefined> {
@@ -57,6 +60,7 @@ export class DownstreamHttpClient {
       requestHeaders[HEADERS.CONTENT_TYPE] = 'application/json';
     }
 
+    const startedAt = process.hrtime.bigint();
     let response: Response;
     try {
       response = await fetch(url, {
@@ -68,10 +72,20 @@ export class DownstreamHttpClient {
     } catch (err) {
       const error = err as Error;
       if (error.name === 'AbortError' || error.name === 'TimeoutError') {
+        this.recordDownstream(method, path, 'timeout', 0, startedAt);
         throw new DownstreamTimeoutError();
       }
+      this.recordDownstream(method, path, 'unavailable', 0, startedAt);
       throw new DownstreamUnavailableError();
     }
+
+    this.recordDownstream(
+      method,
+      path,
+      response.ok ? 'ok' : 'error',
+      response.status,
+      startedAt,
+    );
 
     if (response.status === 204) {
       return undefined;
@@ -115,5 +129,26 @@ export class DownstreamHttpClient {
     }
 
     return responseBody as T;
+  }
+
+  private recordDownstream(
+    method: string,
+    path: string,
+    outcome: string,
+    status: number,
+    startedAt: bigint,
+  ): void {
+    if (!this.metrics) {
+      return;
+    }
+    const durationSeconds =
+      Number(process.hrtime.bigint() - startedAt) / 1_000_000_000;
+    this.metrics.observeDownstream(
+      this.clientName,
+      method,
+      outcome,
+      status,
+      durationSeconds,
+    );
   }
 }

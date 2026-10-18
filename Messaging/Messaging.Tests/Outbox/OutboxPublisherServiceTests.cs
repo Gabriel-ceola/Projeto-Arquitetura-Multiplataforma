@@ -2,6 +2,7 @@ using Confluent.Kafka;
 using FluentAssertions;
 using Messaging.Kafka;
 using Messaging.Outbox;
+using Messaging.Telemetry;
 using Messaging.Tests.Helpers;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -35,6 +36,7 @@ public class OutboxPublisherServiceTests
             provider.GetRequiredService<IServiceScopeFactory>(),
             _producerMock.Object,
             Options.Create(new KafkaOptions { Outbox = new KafkaOutboxOptions { BatchSize = 10 } }),
+            new MessagingMetrics(),
             NullLogger<OutboxPublisherService<TestDbContext>>.Instance);
     }
 

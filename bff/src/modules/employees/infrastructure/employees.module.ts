@@ -18,6 +18,8 @@ export const EMPLOYEE_HTTP_CLIENT = Symbol('EMPLOYEE_HTTP_CLIENT');
     DownstreamHttpModule.forClient(
       EMPLOYEE_HTTP_CLIENT,
       'EMPLOYEE_SERVICE_BASE_URL',
+      'DOWNSTREAM_TIMEOUT_MS',
+      'employees',
     ),
   ],
   controllers: [EmployeesController],

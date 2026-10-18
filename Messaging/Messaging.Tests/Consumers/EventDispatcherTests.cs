@@ -2,6 +2,7 @@ using FluentAssertions;
 using Messaging.Consumers;
 using Messaging.Contracts;
 using Messaging.Kafka;
+using Messaging.Telemetry;
 using Messaging.Tests.Helpers;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -33,6 +34,7 @@ public class EventDispatcherTests
             provider.GetRequiredService<IServiceScopeFactory>(),
             _producerMock.Object,
             Options.Create(options),
+            new MessagingMetrics(),
             NullLogger<EventDispatcher>.Instance);
     }
 

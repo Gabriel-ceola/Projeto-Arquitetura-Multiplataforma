@@ -1,5 +1,6 @@
 using Confluent.Kafka;
 using Messaging.Consumers;
+using Messaging.Telemetry;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -11,17 +12,20 @@ public sealed class KafkaConsumerService : BackgroundService
     private readonly EventDispatcher _dispatcher;
     private readonly EventHandlerRegistry _registry;
     private readonly KafkaOptions _options;
+    private readonly MessagingMetrics _metrics;
     private readonly ILogger<KafkaConsumerService> _logger;
 
     public KafkaConsumerService(
         EventDispatcher dispatcher,
         EventHandlerRegistry registry,
         IOptions<KafkaOptions> options,
+        MessagingMetrics metrics,
         ILogger<KafkaConsumerService> logger)
     {
         _dispatcher = dispatcher;
         _registry = registry;
         _options = options.Value;
+        _metrics = metrics;
         _logger = logger;
     }
 
@@ -65,6 +69,7 @@ public sealed class KafkaConsumerService : BackgroundService
         }
         catch (Exception exception)
         {
+            _metrics.ConsumerFatalError("consumer_stopped");
             _logger.LogCritical(exception, "O consumidor Kafka parou.");
         }
     }
@@ -110,6 +115,7 @@ public sealed class KafkaConsumerService : BackgroundService
             }
             catch (ConsumeException exception) when (exception.Error.IsFatal)
             {
+                _metrics.ConsumerFatalError("fatal_consume");
                 _logger.LogCritical(exception, "Erro fatal no consumidor Kafka: {Reason}", exception.Error.Reason);
                 return;
             }

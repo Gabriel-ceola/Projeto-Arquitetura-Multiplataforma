@@ -1,0 +1,112 @@
+groups:
+  - name: disponibilidade
+    rules:
+      - alert: ServicoIndisponivel
+        expr: up == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Serviço {{ $labels.job }} indisponível"
+          description: "O Prometheus não consegue raspar {{ $labels.instance }} (job {{ $labels.job }})."
+
+  - name: agendamento
+    rules:
+      - alert: AltaTaxaDeErroNoAgendamento
+        expr: |
+          sum(rate(appointment_creation_total{result="rejected"}[5m]))
+            /
+          sum(rate(appointment_creation_total[5m])) > 0.4
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Muitas criações de agendamento rejeitadas"
+          description: "Mais de 40% das tentativas de criação de agendamento estão sendo rejeitadas."
+
+      - alert: ConflitoDeHorarioFrequente
+        expr: sum(rate(appointment_creation_total{reason="slot_taken"}[5m])) > 0.1
+        for: 10m
+        labels:
+          severity: info
+        annotations:
+          summary: "Conflitos de horário frequentes no agendamento"
+
+  - name: pagamento
+    rules:
+      - alert: TaxaDeFalhaDePagamentoAlta
+        expr: |
+          sum(rate(payment_status_update_total{to="failed"}[10m]))
+            /
+          clamp_min(sum(rate(payment_status_update_total{result="ok"}[10m])), 1) > 0.2
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Taxa de falha de pagamento elevada"
+          description: "Mais de 20% das transições de status resultam em 'failed'."
+
+      - alert: ErrosDeCriacaoDePagamento
+        expr: sum(rate(payment_creation_total{result="rejected"}[5m])) > 0.1
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Criações de pagamento sendo rejeitadas"
+
+  - name: mensageria
+    rules:
+      - alert: BacklogNoOutbox
+        expr: messaging_outbox_pending > 100
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Backlog no outbox ({{ $value }} mensagens)"
+          description: "Eventos de agendamento/pagamento não estão sendo publicados no Kafka."
+
+      - alert: FalhaAoPublicarNoKafka
+        expr: sum(increase(messaging_outbox_publish_failures_total[5m])) > 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Falha ao publicar eventos do outbox no Kafka"
+
+      - alert: MensagensNaDLQ
+        expr: sum(increase(messaging_consumer_dlq_total[5m])) > 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Mensagens enviadas para a DLQ"
+          description: "Há eventos sendo direcionados para a dead-letter queue."
+
+      - alert: ErroFatalNoConsumidorKafka
+        expr: sum(increase(messaging_consumer_fatal_errors_total[5m])) > 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Erro fatal no consumidor Kafka"
+
+      - alert: LagDeConsumoAlto
+        expr: sum(kafka_consumergroup_lag) by (consumergroup, topic) > 1000
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Lag de consumo alto ({{ $labels.consumergroup }} / {{ $labels.topic }})"
+
+  - name: http
+    rules:
+      - alert: AltaTaxaDeErroHttp5xx
+        expr: |
+          sum(rate(appointment_creation_total[5m])) by () == 0
+            and
+          sum(rate(bff_http_requests_total{status=~"5.."}[5m])) > 0.1
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Taxa de 5xx elevada no BFF"

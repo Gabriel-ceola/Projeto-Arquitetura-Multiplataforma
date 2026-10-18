@@ -52,6 +52,7 @@ todas as aplicações.
 | Messaging | Biblioteca .NET (Kafka + outbox) | `Messaging/` |
 | Kafka | Apache Kafka 4.3.1 (KRaft) + Kafka UI | `kafka/` |
 | Keycloak | Keycloak 26 + PostgreSQL | `keycloak/` |
+| Observabilidade | Prometheus + Grafana + kafka-exporter | `observability/` |
 
 ---
 
@@ -83,6 +84,9 @@ todas as aplicações.
 | Postgres Payment | **5433** | db `payment_service` |
 | Postgres Employee | **5434** | db `employee_service` |
 | Postgres Keycloak | **5435** | db `keycloak` |
+| Prometheus | **9090** | métricas dos serviços (ver `observability/`) |
+| Grafana | **3001** | `admin`/`admin` — dashboards versionados |
+| kafka-exporter | **9308** | métricas do broker para o Prometheus |
 
 Todas as senhas de desenvolvimento são `postgres` (bancos) e o Kafka é `PLAINTEXT`.
 
@@ -244,6 +248,34 @@ docker compose -f PaymentService/docker-compose.yml up -d
 (cd PaymentService && dotnet run)                     # :5127
 (cd bff && pnpm run start:dev)                        # :3000
 ```
+
+---
+
+## Observabilidade (Prometheus + Grafana)
+
+Stack completa em `observability/`, cobrindo os fluxos de **agendamento** e
+**pagamento** de ponta a ponta (negócio, Kafka/outbox/DLQ, HTTP e runtime).
+
+```bash
+# Kafka precisa estar no ar primeiro
+docker compose -f kafka/docker-compose.yaml up -d
+docker compose -f observability/docker-compose.yaml up -d
+
+# Prometheus → http://localhost:9090   |   Grafana → http://localhost:3001 (admin/admin)
+```
+
+Para o Prometheus (em container) raspar as apps (no host), suba-as escutando em
+**`0.0.0.0`** — o bind padrão de dev (`localhost`) não é acessível de dentro do
+container:
+
+```bash
+(cd Dentist-Service/Dentist-service && ASPNETCORE_URLS=http://0.0.0.0:5068 dotnet run --no-launch-profile)
+(cd PaymentService && ASPNETCORE_URLS=http://0.0.0.0:5127 dotnet run --no-launch-profile)
+(cd bff && pnpm run start:dev)
+```
+
+Endpoints: `/metrics` e `/health` em cada app. Dashboards e catálogo completo de
+métricas em [`observability/README.md`](observability/README.md).
 
 ---
 
